@@ -3,3 +3,5 @@ plotting
 pandas==1.0.1
 keras==2.3.1
 keras-rl
+psutil
+plotly==4.5.4

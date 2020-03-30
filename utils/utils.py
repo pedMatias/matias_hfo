@@ -34,3 +34,22 @@ def plot_learning(x, scores, epsilons, filename, lines=None):
             plt.axvline(x=line)
 
     plt.savefig(filename)
+
+
+def q_table_variation(old_q_table: np.ndarray, new_q_table: np.ndarray):
+    diff_values = []
+    for old_q, new_q in zip(old_q_table, new_q_table):
+        diff = abs(new_q - old_q)
+        diff_values.append(np.linalg.norm(diff))
+    return sum(diff_values) / len(diff_values)
+
+
+def get_mean_value_list_by_range(l: list, rang: int = 10):
+    l_aux = l.copy()
+    mean_list = []
+    while l_aux:
+        list_part = l_aux[:rang]
+        dim = len(list_part)
+        mean_list += [(sum(list_part)/dim)] * dim
+        l_aux = l_aux[rang:]
+    return mean_list

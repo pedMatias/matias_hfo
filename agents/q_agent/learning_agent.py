@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 # encoding utf-8
 import numpy as np
-import math
 import argparse
+from datetime import datetime as dt
 
 from hfo import SHOOT, MOVE, DRIBBLE
 
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
-from agents.base.base_learning_agent import BaseLearningAgent
 from environement_features.discrete_features import \
     DiscreteHighLevelFeatures
 from actions_levels.BaseActions import ActionManager
 from environement_features.reward_functions import simple_reward
-from utils import plot_learning
-from matias_project import settings
+from utils.utils import plot_learning
+from matias_hfo import settings
 
 
 class QLearningAgent:
+    name = "q_agent"
+    
     def __init__(self, num_states: int, num_actions: int, num_games: int,
                  learning_rate: float = 0.1, discount_factor: float = 0.9,
                  epsilon: float = 1, save_file: str = None, **kwargs):
@@ -85,27 +86,32 @@ class QLearningAgent:
         self.epsilon = self.epsilon_end if self.epsilon <= self.epsilon_end \
             else self.epsilon * self.epsilon_dec
     
-    def _save_metrics(self, episode: int, produce_graph: bool = False):
-        self.scores.append(self.score)
-        self.eps_history.append(self.epsilon)
-        if produce_graph and episode % 100 == 0 and episode > 0:
-            file_name = "qlearning_agent_{}_{}_{}.png".format(
-                self.num_games, self.num_states, self.num_actions)
-            file_path = settings.IMAGES_DIR + file_name
-            x = [i + 1 for i in range(episode)]
-            plot_learning(x, self.scores, self.eps_history, file_path)
-    
-    def reset(self, episode: int, produce_graph: bool = False):
-        if episode == 0:
-            pass
-        else:
-            self._save_metrics(episode, produce_graph)
+    def reset(self, episode: int):
+        if episode > 0:
+            self.scores.append(self.score)
+            self.eps_history.append(self.epsilon)
             self._update_hyper_parameters()
             self.score = 0
     
-    def save_model(self, episode: int):
+    def save_plot(self, episode: int, file_name: str = None):
+        if file_name is None:
+            file_name = settings.PLOT_FILE_NAME_FORMAT.format(
+                agent_type=self.name,
+                num_episodes=self.num_games,
+                date=dt.now().isoformat()
+            )
+        file_path = settings.IMAGES_DIR + file_name + ".png"
+        x = [i + 1 for i in range(episode)]
+        plot_learning(x, self.scores, self.eps_history, file_path)
+    
+    def save_model(self):
         file_path = settings.MODELS_DIR + self.save_file
         np.save(file_path, self.q_table)
+    
+    def save(self, episode: int, produce_graph: bool):
+        self.save_model()
+        if produce_graph:
+            self.save_plot(episode, self.save_file)
 
 
 if __name__ == '__main__':
@@ -114,22 +120,22 @@ if __name__ == '__main__':
     parser.add_argument('--num_opponents', type=int, default=0)
     parser.add_argument('--num_teammates', type=int, default=0)
     parser.add_argument('--num_episodes', type=int, default=500)
-    parser.add_argument('--saveFile', type=str, default=None)
+    parser.add_argument('--save_file', type=str, default=None)
     
     args = parser.parse_args()
     agent_id = args.id
     num_team = args.num_teammates
     num_op = args.num_opponents
     num_episodes = args.num_episodes
-    saving_file = args.saveFile
+    saving_file = args.save_file
     
     print("Starting Training - id={}; num_opponents={}; num_teammates={}; "
           "num_episodes={}; saveFile={};".format(agent_id, num_op, num_team,
                                                  num_episodes, saving_file))
     # Initialize connection with the HFO server
     hfo_interface = HFOAttackingPlayer(agent_id=agent_id,
-                                       num_opponents=args.num_opponents,
-                                       num_teammates=args.num_teammates)
+                                       num_opponents=num_op,
+                                       num_teammates=num_team)
     hfo_interface.connect_to_server()
     
     # Reward Function
@@ -150,7 +156,7 @@ if __name__ == '__main__':
     # Run training using Q-Learning
     for i in range(num_episodes):
         print('\n=== Episode {}/{}:'.format(i, num_episodes))
-        agent.reset(i, produce_graph=True)
+        agent.reset(i)
         observation = hfo_interface.reset()
         # Update environment features:
         curr_state_id = features_manager.get_state_index(observation)
@@ -173,5 +179,5 @@ if __name__ == '__main__':
                         curr_state_id)
 
         print(':: Episode: {}; Score: {}'.format(i, agent.score))
-        if i % 10 == 0 and i > 0:
-            agent.save_model(i)
+        if i % 1000 == 0 and i > 0:
+            agent.save(i, produce_graph=True)

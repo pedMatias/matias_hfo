@@ -4,7 +4,7 @@ from hfo import SHOOT, PASS, DRIBBLE, MOVE, GO_TO_BALL, REORIENT, NOOP, QUIT
 class ActionManager:
     _actions = [SHOOT, PASS, DRIBBLE, MOVE, GO_TO_BALL, REORIENT, NOOP, QUIT]
     _names = ["SHOOT", "PASS", "DRIBBLE", "MOVE", "GO_TO_BALL", "REORIENT",
-             "NOOP", "QUIT"]
+              "NOOP", "QUIT"]
 
     @staticmethod
     def valid_action(hfo_action: int, has_ball: bool):
@@ -21,15 +21,18 @@ class ActionManager:
         self.actions_map = {}
         for idx, action in enumerate(actions):
             self.actions_map[idx] = action
-        print("Action map: ", self.actions_map)
     
     def map_action(self, map_idx: int) -> int:
         return int(self.actions_map[map_idx])
     
     def get_num_actions(self) -> int:
-        print("NUm actions: ", len(self.actions_map))
         return len(self.actions_map)
     
+    def map_action_to_str(self, map_idx: int) -> str:
+        hfo_action_id = self.map_action(map_idx)
+        action_name = self._names[self._actions.index(hfo_action_id)]
+        return action_name
+        
     def map_str_to_action(self, action_str):
         id = self._names.index(action_str)
         return self._actions[id]

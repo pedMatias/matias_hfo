@@ -11,16 +11,16 @@ export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
 echo $PYTHONPATH
 
 NUM_EPISODES=10
-NUM_OPPONENTS=1
-NUM_OPPONENTS_NPCS=0
-NUM_TEAMMATES=1
-NUM_TEAMMATES_NPCS=0
+NUM_DEFENSES=1
+NUM_DEFENSES_NPCS=0
+NUM_OFFENSES=0
+NUM_OFFENSES_NPCS=1
 
-AGENT_FILE=$PROJECT_DIR/agents/goalkeeper/player_agent.py
+AGENT_FILE=$PROJECT_DIR/agents/goalkeeper/test_agent.py
 
 echo $HFO
-$HFO --offense-agents $NUM_TEAMMATES --offense-npcs $NUM_TEAMMATES_NPCS \
- --defense-agents $NUM_OPPONENTS --defense-npcs $NUM_OPPONENTS_NPCS \
+$HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+ --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
  --offense-on-ball 11 --trials $NUM_EPISODES \
  --deterministic --fullstate --no-sync --no-logging &
 # Sleep is needed to make sure doesn't get connected too soon, as unum 1 (goalie)

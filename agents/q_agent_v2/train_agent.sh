@@ -1,16 +1,17 @@
 #!/bin/bash
 killall -9 rcssserver
 
+export PYTHONPATH=/home/matias/Desktop/HFO:$PYTHONPATH
+export PYTHONPATH=/home/matias/Desktop/HFO/matias_hfo:$PYTHONPATH
+echo $PYTHONPATH
+
 BASE_DIR=/home/matias/Desktop/HFO
 HFO=$BASE_DIR/bin/HFO
 PYTHON=$BASE_DIR/venv/bin/python
-PROJECT_DIR=$BASE_DIR/matias_hfo
 
-export PYTHONPATH=$HFO:$PYTHONPATH
-export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
-echo $PYTHONPATH
+NUM_WORKOUTS=7
+NUM_EPISODES=4200
 
-NUM_EPISODES=20
 NUM_DEFENSES=1
 NUM_DEFENSES_NPCS=0
 TOTAL_OPPONENTS=1
@@ -19,22 +20,22 @@ NUM_OFFENSES=1
 NUM_OFFENSES_NPCS=0
 TOTAL_TEAMMATES=0
 
-OFFENSE_AGENT_FILE=$PROJECT_DIR/agents/q_agent/test_agent.py
-MODEL=$PROJECT_DIR/data/qlearning_agent_4000ep_1dumbdefense.npy
+OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_v2/learning_agent.py
 DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/test_agent.py
 
 echo $HFO
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
- --offense-on-ball 11  --trials $NUM_EPISODES \
- --deterministic --fullstate --no-sync --no-logging &
+ --offense-on-ball 11  --trials $NUM_EPISODES --deterministic --fullstate \
+ --no-logging \
+   --headless &
+#  --no-sync  &
 # Sleep is needed to make sure doesn't get connected too soon, as unum 1 (goalie)
 
 sleep 5
 echo "Connect to player"
 $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
---num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
---load_file=$MODEL &
+--num_teammates=$TOTAL_TEAMMATES --num_workouts=$NUM_WORKOUTS &
 echo "PLayer connected"
 
 sleep 5

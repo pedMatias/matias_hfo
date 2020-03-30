@@ -27,6 +27,9 @@ class HFOAttackingPlayer(object):
         self.episode += 1
         self.num_steps = 0
         return self.hfo.getState()
+    
+    def get_state(self):
+        return self.hfo.getState()
 
     def connect_to_server(self):
         """ Establish connection with HFO server """

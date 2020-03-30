@@ -37,7 +37,7 @@ class HFOGoalkeeperPlayer(object):
         agent and the environement_features. Method returns the current status
         of the episode and nextState
         """
-        self.hfo.act(hfo_action, args)
+        self.hfo.act(hfo_action, *args)
         self.status = self.hfo.step()
         return self.status, self.hfo.getState()
     

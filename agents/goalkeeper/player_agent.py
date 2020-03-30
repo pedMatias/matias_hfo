@@ -10,7 +10,8 @@ from agents.base.hfo_goalkeeper_player import HFOGoalkeeperPlayer
 from environement_features.base import BaseHighLevelState
 import settings
 
-ACTIONS = {"MOVE_UP": (MOVE_TO, 0.5, -0.2), "MOVE_DOWN": (MOVE_TO, 0.5, 0.2),
+ACTIONS = {"MOVE_UP": (MOVE_TO, -0.75, -0.2),
+           "MOVE_DOWN": (MOVE_TO, -0.75, 0.2),
            "NOOP": NOOP}
     
 
@@ -21,17 +22,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
     num_episodes = args.num_episodes
     
-    print("Starting Goalkeeper num_episodes={};".format(num_episodes))
     # Initialize connection with the HFO server
     hfo_interface = HFOGoalkeeperPlayer()
     hfo_interface.connect_to_server()
-    print("CONNECTED!!!!")
     
     # Get number of features and actions
-    features_manager = BaseHighLevelState()
+    features_manager = BaseHighLevelState(num_op=1)
     
     for i in range(num_episodes):
-        print(" >>> Episode {}".format(i))
         observation = hfo_interface.reset()
         # Update environment features:
         features_manager._encapsulate_data(observation)
@@ -41,8 +39,8 @@ if __name__ == '__main__':
                 hfo_action = ACTIONS["MOVE_UP"]
             else:
                 hfo_action = ACTIONS["MOVE_DOWN"]
-            
-            status, observation = hfo_interface.step(hfo_action)
+
+            status, observation = hfo_interface.step(*hfo_action)
             
             # Update environment features:
             features_manager._encapsulate_data(observation)
