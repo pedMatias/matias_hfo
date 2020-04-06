@@ -39,6 +39,10 @@ class DiscreteFeaturesV2(DiscreteHighLevelFeatures):
         else:  # y in [0.4, 1]
             return 4 if self.agent.x_pos < 0 else 5
     
+    def get_pos_tuple(self) -> tuple:
+        """ @return (x axis pos, y axis pos)"""
+        return self.agent.x_pos, self.agent.y_pos
+        
     def update_features(self, observation: list):
         self._encapsulate_data(observation)
         self.features[0] = self._position_finder()
@@ -48,7 +52,6 @@ class DiscreteFeaturesV2(DiscreteHighLevelFeatures):
     
     def get_position_name(self):
         pos = self.features[0]
-        print("Position ID: ", pos)
         return self.positions_names.get(pos)
         
     def get_features(self, _=None):
@@ -63,7 +66,6 @@ class DiscreteFeaturesV2(DiscreteHighLevelFeatures):
         size *= 2  # has ball
         size *= 2  # open_angle
         size *= 2  # opponent proximity
-        print("NUM States: ", size)
         return size
     
     def get_state_index(self, _=None) -> int:

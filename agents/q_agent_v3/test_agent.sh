@@ -11,7 +11,7 @@ PYTHON=$BASE_DIR/venv/bin/python
 
 # Train config:
 OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_v3/test_agent.py
-SAVE_DIR=$BASE_DIR/matias_hfo/data/q_agent_train_2020-03-29_23:25:00
+SAVE_DIR=$BASE_DIR/matias_hfo/data/q_agent_train_2020-03-30_18:21:00
 Q_TABLE=$SAVE_DIR/q_table.npy
 
 NUM_EPISODES=10

@@ -12,7 +12,7 @@ from hfo import SHOOT, MOVE, DRIBBLE, GOAL
 
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
 from environement_features import discrete_features_v2, reward_functions
-from actions_levels.BaseActions import ActionManager
+from actions_levels.discrete_actions import DiscreteActions
 from matias_hfo import settings
 from utils.utils import q_table_variation, get_mean_value_list_by_range
 from utils.metrics import BarChart, TwoLineChart, HeatMapPlot
@@ -63,7 +63,6 @@ class QLearningAgent:
     def load_q_table(self, load_file):
         print("Loading Q table from file {}".format(load_file))
         self.q_table = np.load(load_file)
-        print(self.q_table)
     
     def explore_actions(self):
         random_action = np.random.randint(0, self.num_actions)
@@ -140,7 +139,7 @@ class QLearningAgent:
 
 def test(train_ep: int, num_episodes: int, game_interface: HFOAttackingPlayer,
          features: discrete_features_v2.DiscreteFeaturesV2,
-         agent: QLearningAgent, actions: ActionManager, reward_funct):
+         agent: QLearningAgent, actions: DiscreteActions, reward_funct):
     # Run training using Q-Learning
     score = 0
     agent.test_episodes.append(train_ep)
@@ -152,11 +151,10 @@ def test(train_ep: int, num_episodes: int, game_interface: HFOAttackingPlayer,
             curr_state_id = features.get_state_index()
             has_ball = features.has_ball()
 
-            # print("Position: ", features.get_position_name())
-            
             # Act:
-            action_idx = agent.exploit_actions(curr_state_id)
-            hfo_action = actions.map_action(action_idx)
+            action_idx = agent.act(curr_state_id)
+            hfo_action: tuple = actions.map_action_idx_to_hfo_action(
+                features.get_pos_tuple(), action_idx)
             
             # Step:
             status, observation = game_interface.step(hfo_action, has_ball)
@@ -178,10 +176,11 @@ def test(train_ep: int, num_episodes: int, game_interface: HFOAttackingPlayer,
 
 def train(num_episodes: int, game_interface: HFOAttackingPlayer,
           features: discrete_features_v2.DiscreteFeaturesV2,
-          agent: QLearningAgent, actions: ActionManager, reward_funct):
+          agent: QLearningAgent, actions: DiscreteActions, reward_funct):
     for ep in range(num_episodes):
         print('<Training> Episode {}/{}:'.format(ep, num_episodes))
         aux_positions_names = set()
+        aux_actions_played = set()
         while game_interface.in_game():
             # Update environment features:
             features.update_features(game_interface.get_state())
@@ -190,7 +189,9 @@ def train(num_episodes: int, game_interface: HFOAttackingPlayer,
             
             # Act:
             action_idx = agent.act(curr_state_id)
-            hfo_action = actions.map_action(action_idx)
+            aux_actions_played.add(actions.map_action_to_str(action_idx))
+            hfo_action: tuple = actions.map_action_idx_to_hfo_action(
+                features.get_pos_tuple(), action_idx)
             
             # Step:
             status, observation = game_interface.step(hfo_action, has_ball)
@@ -209,8 +210,8 @@ def train(num_episodes: int, game_interface: HFOAttackingPlayer,
             # Update agent
             agent.learn(prev_state_id, action_idx, reward, status,
                         curr_state_id)
-        print(':: Episode: {}; reward: {}; positions: {}'.format(
-            ep, agent.cum_reward, aux_positions_names))
+        print(':: Episode: {}; reward: {}; positions: {}; actions: {}'.format(
+            ep, agent.cum_reward, aux_positions_names, aux_actions_played))
         agent.save_metrics(agent.old_q_table, agent.q_table)
         # Reset player:
         agent.reset()
@@ -253,7 +254,7 @@ if __name__ == '__main__':
     # Agent set-up
     reward_function = reward_functions.simple_reward
     features_manager = discrete_features_v2.DiscreteFeaturesV2(num_team, num_op)
-    actions_manager = ActionManager([SHOOT, MOVE, DRIBBLE])
+    actions_manager = DiscreteActions()
     agent = QLearningAgent(num_states=features_manager.get_num_states(),
                            num_actions=actions_manager.get_num_actions(),
                            learning_rate=0.1,

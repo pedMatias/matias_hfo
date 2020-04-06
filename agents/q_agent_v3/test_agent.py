@@ -6,7 +6,7 @@ from hfo import SHOOT, MOVE, DRIBBLE
 
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
 from environement_features import discrete_features_v2, reward_functions
-from actions_levels.BaseActions import ActionManager
+from actions_levels.discrete_actions import DiscreteActions
 
 from agents.q_agent_v3 import learning_agent
 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     # Agent set-up
     reward_function = reward_functions.simple_reward
     features_manager = discrete_features_v2.DiscreteFeaturesV2(num_team, num_op)
-    actions_manager = ActionManager([SHOOT, MOVE, DRIBBLE])
+    actions_manager = DiscreteActions()
     agent = learning_agent.QLearningAgent(
         num_states=features_manager.get_num_states(),
         num_actions=actions_manager.get_num_actions(),

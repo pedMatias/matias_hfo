@@ -12,7 +12,7 @@ PYTHON=$BASE_DIR/venv/bin/python
 # Train config:
 OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_v3/learning_agent.py
 TRAIN_MODE="train_only"  # ["train_only", "alternate", "test_in_the_end"]
-NUM_TRAIN_EP=3000
+NUM_TRAIN_EP=20000
 NUM_TEST_EP=0
 NUM_EPISODES=$(($NUM_TRAIN_EP + $NUM_TEST_EP))
 echo "Episodes: $NUM_EPISODES"

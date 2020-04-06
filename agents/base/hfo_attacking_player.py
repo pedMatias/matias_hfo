@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 #encoding utf-8
+from typing import Optional
 
 from hfo import HFOEnvironment, HIGH_LEVEL_FEATURE_SET, QUIT, IN_GAME
 
@@ -41,14 +42,23 @@ class HFOAttackingPlayer(object):
             team_name='base_left',
             play_goalie=False)
 
-    def step(self, hfo_action: int, has_ball: bool) -> (int, list):
+    def step(self, hfo_action, has_ball: bool) -> (int, list):
         """
         Method that serves as an interface between a script controlling the
-        agent and the environement_features. Method returns the current status
+        agent and the environment_features. Method returns the current status
         of the episode and nextState
+        @param hfo_action: [int, tuple]
+        @param has_ball:
         """
-        action = BaseActions.ActionManager.valid_action(hfo_action, has_ball)
-        self.hfo.act(action)
+        if type(hfo_action) is tuple:
+            action = hfo_action[0]
+            params = hfo_action[1:]
+        else:
+            action = hfo_action
+            params = ()
+        action_args = BaseActions.ActionManager.valid_action(action, has_ball,
+                                                             params)
+        self.hfo.act(*action_args)
         self.num_steps += 1
         self.status = self.hfo.step()
         return self.status, self.hfo.getState()
