@@ -5,16 +5,18 @@ from hfo import SHOOT, PASS, DRIBBLE, MOVE, GO_TO_BALL, REORIENT, NOOP, QUIT,\
 
 
 class ActionManager:
-    _actions = [SHOOT, PASS, DRIBBLE, MOVE, GO_TO_BALL, REORIENT, NOOP, QUIT]
+    _actions = [SHOOT, PASS, DRIBBLE, MOVE, GO_TO_BALL, REORIENT, NOOP, QUIT,
+                MOVE_TO, DRIBBLE_TO, KICK_TO]
     _names = ["SHOOT", "PASS", "DRIBBLE", "MOVE", "GO_TO_BALL", "REORIENT",
-              "NOOP", "QUIT"]
+              "NOOP", "QUIT", "MOVE_TO", "DRIBBLE_TO", "KICK_TO"]
 
     @staticmethod
     def valid_action(hfo_action: int, has_ball: bool, params: tuple) -> tuple:
         if hfo_action in [KICK_TO, SHOOT, DRIBBLE_TO, PASS, DRIBBLE] and \
                 has_ball:
             return (hfo_action, *params)
-        elif hfo_action in [MOVE, MOVE_TO, GO_TO_BALL] and not has_ball:
+        elif hfo_action in [MOVE, MOVE_TO, GO_TO_BALL, DRIBBLE_TO] \
+                and not has_ball:
             return (hfo_action, *params)
         elif hfo_action in [REORIENT, NOOP, QUIT]:
             return (hfo_action, *())

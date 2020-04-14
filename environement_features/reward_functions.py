@@ -2,6 +2,15 @@ from hfo import IN_GAME, GOAL, CAPTURED_BY_DEFENSE, OUT_OF_BOUNDS, \
     OUT_OF_TIME, DRIBBLE, SHOOT, MOVE
 
 
+def basic_reward(game_status: int) -> int:
+    if game_status == GOAL:
+        return 1
+    elif game_status in [CAPTURED_BY_DEFENSE, OUT_OF_BOUNDS, OUT_OF_TIME]:
+        return -1
+    else:
+        return 0
+
+
 def simple_reward(game_status: int) -> int:
     if game_status == IN_GAME:
         return -1

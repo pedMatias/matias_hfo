@@ -2,35 +2,32 @@
 # encoding utf-8
 import json
 import os
-import threading
 
 import numpy as np
 import argparse
 from datetime import datetime as dt
 
-from hfo import SHOOT, MOVE, DRIBBLE, GOAL
+from hfo import GOAL
 
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
 from environement_features import discrete_features_v2, reward_functions
-from actions_levels.discrete_actions import DiscreteActions
+from actions_levels.discrete_actions_v2 import DiscreteActionsV2
 from matias_hfo import settings
-from utils.utils import q_table_variation, get_mean_value_list_by_range
-from utils.metrics import BarChart, TwoLineChart, HeatMapPlot
+from utils.utils import q_table_variation
 
 
-class QLearningAgent:
+class QLearningAgentV4:
     name = "q_agent"
+    EPSILON_VALUES = [0.8, 0.7, 0.6, 0.5, 0.4, 0.3]
     
     def __init__(self, num_states: int, num_actions: int,
                  learning_rate: float = 0.1, discount_factor: float = 0.9,
-                 epsilon: float = 1, **kwargs):
+                 epsilon: float = 0.8, **kwargs):
         self.num_states = num_states
         self.num_actions = num_actions
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
         self.epsilon = epsilon
-        self.epsilon_dec = kwargs.get("epsilon_dec") or 0.99
-        self.epsilon_end = kwargs.get("epsilon_end") or 0.05
         self.cum_reward = 0
         self.scores = []
         self.test_episodes = []
@@ -42,6 +39,7 @@ class QLearningAgent:
         self.old_q_table = np.zeros((num_states, num_actions))
         self.q_table = np.zeros((num_states, num_actions))
         self.save_dir = kwargs.get("dir") or self._init_instance_directory()
+        self.learning_buffer = []
     
     def _init_instance_directory(self):
         now = dt.now().replace(second=0, microsecond=0)
@@ -73,13 +71,17 @@ class QLearningAgent:
         return int(action)
     
     def act(self, state_idx: int):
+        # TODO remove, just force the agent to dribble to mid field
+        if len(self.learning_buffer) < 4:
+            return 4  # Dribble right
+        
         if np.random.random() < self.epsilon:  # Explore
             return self.explore_actions()
         else:  # Exploit
             return self.exploit_actions(state_idx)
     
-    def learn(self, state_idx: int, action_idx: int, reward: int, done: bool,
-              next_state: int):
+    def _learn(self, state_idx: int, action_idx: int, reward: int, done: bool,
+               next_state: int):
         """
         Called at each loop iteration when the agent is learning. It should
         implement the learning procedure.
@@ -91,19 +93,63 @@ class QLearningAgent:
         """
         self._check_valid_state(state_idx), self._check_valid_state(next_state)
         self._check_valid_action(action_idx)
-        # Update:
-        reward = reward if done else \
-            reward + (self.discount_factor * np.amax(self.q_table[next_state]))
-        self.q_table[state_idx][action_idx] *= (1 - self.learning_rate)
-        self.q_table[state_idx][action_idx] += self.learning_rate * reward
+
+        prev_q_value = self.q_table[state_idx][action_idx]
+        if done:
+            td = reward - prev_q_value
+        else:
+            max_q_value = np.amax(self.q_table[next_state])
+            target_td = reward + (self.discount_factor * max_q_value)
+            td = target_td - prev_q_value
+        
+        self.q_table[state_idx][action_idx] = prev_q_value + \
+            self.learning_rate * td
+        
+        # TODO remove
+        #print("pre_q ={} -> (si={}, a={}, r={}, d={}, sf={}) -> "
+        #      "new_q={}".format(prev_q_value, state_idx, action_idx, reward,
+        #                        done, next_state,
+        #                        self.q_table[state_idx][action_idx]))
     
-    def update_hyper_parameters(self):
+    def learn(self):
+        """ The agent only learns from the moment which it has the ball,
+        until its final shoot"""
+        buffer = self.learning_buffer.copy()
+    
+        # remove movements without ball
+        last_reward = buffer[-1]["r"]
+        for i in range(len(self.learning_buffer)-1, -1, -1):
+            if buffer[i]["has_ball"]:
+                buffer = self.learning_buffer[:i+1]
+                break
+            else:
+                pass
+        
+        # last reward changed to last action with ball:
+        buffer[-1]["r"] = last_reward
+        buffer[-1]["done"] = True
+        while buffer:
+            ep = buffer.pop()
+            self._learn(state_idx=ep["st_idx"], action_idx=ep["ac_idx"],
+                        reward=ep["r"], next_state=ep["next_st_idx"],
+                        done=ep["done"])
+    
+    def store_ep(self, state_idx: int, action_idx: int, reward: int,
+                 next_state_idx: int, has_ball: bool, done: bool):
+        entry = {"st_idx": state_idx, "ac_idx": action_idx, "r": reward,
+                 "next_st_idx": next_state_idx, "has_ball": has_ball,
+                 "done": done}
+        self.learning_buffer.append(entry)
+    
+    def update_hyper_parameters(self, episode: int, num_total_episodes: int):
         self.learning_rate = self.learning_rate  # TODO update in the future
         # Epsilon:
-        self.epsilon = self.epsilon_end if self.epsilon <= self.epsilon_end \
-            else self.epsilon * self.epsilon_dec
+        div = num_total_episodes / len(self.EPSILON_VALUES)
+        ep_idx = episode / div
+        self.epsilon = self.EPSILON_VALUES[int(ep_idx)]
     
     def reset(self, training: bool = True):
+        self.learning_buffer = []
         if training:
             self.old_q_table = self.q_table.copy()
         self.cum_reward = 0
@@ -139,12 +185,13 @@ class QLearningAgent:
 
 def test(train_ep: int, num_episodes: int, game_interface: HFOAttackingPlayer,
          features: discrete_features_v2.DiscreteFeaturesV2,
-         agent: QLearningAgent, actions: DiscreteActionsV2, reward_funct):
+         agent: QLearningAgentV4, actions: DiscreteActionsV2, reward_funct):
     # Run training using Q-Learning
     score = 0
     agent.test_episodes.append(train_ep)
     for ep in range(num_episodes):
         print('<Test> {}/{}:'.format(ep, num_episodes))
+        prev_state_id =-1
         while game_interface.in_game():
             # Update environment features:
             features.update_features(game_interface.get_state())
@@ -152,12 +199,16 @@ def test(train_ep: int, num_episodes: int, game_interface: HFOAttackingPlayer,
             has_ball = features.has_ball()
 
             # Act:
-            action_idx = agent.act(curr_state_id)
+            if prev_state_id != curr_state_id:
+                print([round(val, 2) for val in agent.q_table[curr_state_id]])
+            action_idx = agent.exploit_actions(curr_state_id)
             hfo_action: tuple = actions.map_action_idx_to_hfo_action(
-                features.get_pos_tuple(), action_idx)
+                agent_pos=features.get_pos_tuple(), has_ball=has_ball,
+                action_idx=action_idx)
             
             # Step:
             status, observation = game_interface.step(hfo_action, has_ball)
+            prev_state_id = curr_state_id
             
             # Save Metrics:
             agent.save_visited_state(curr_state_id, action_idx)
@@ -169,16 +220,16 @@ def test(train_ep: int, num_episodes: int, game_interface: HFOAttackingPlayer,
         # Game Reset
         game_interface.reset()
     agent.scores.append(score)
-    actions_name = [actions_manager.map_action_to_str(i) for i in range(
-        agent.num_actions)]
+    actions_name = [actions_manager.map_action_to_str(i, has_ball=True) for i in
+                    range(agent.num_actions)]
     agent.export_metrics(training=False, actions_name=actions_name)
 
 
 def train(num_episodes: int, game_interface: HFOAttackingPlayer,
           features: discrete_features_v2.DiscreteFeaturesV2,
-          agent: QLearningAgent, actions: DiscreteActions, reward_funct):
+          agent: QLearningAgentV4, actions: DiscreteActionsV2, reward_funct):
     for ep in range(num_episodes):
-        print('<Training> Episode {}/{}:'.format(ep, num_episodes))
+        # print('<Training> Episode {}/{}:'.format(ep, num_episodes))
         aux_positions_names = set()
         aux_actions_played = set()
         while game_interface.in_game():
@@ -189,9 +240,9 @@ def train(num_episodes: int, game_interface: HFOAttackingPlayer,
             
             # Act:
             action_idx = agent.act(curr_state_id)
-            aux_actions_played.add(actions.map_action_to_str(action_idx))
             hfo_action: tuple = actions.map_action_idx_to_hfo_action(
-                features.get_pos_tuple(), action_idx)
+                agent_pos=features.get_pos_tuple(), has_ball=has_ball,
+                action_idx=action_idx)
             
             # Step:
             status, observation = game_interface.step(hfo_action, has_ball)
@@ -201,26 +252,30 @@ def train(num_episodes: int, game_interface: HFOAttackingPlayer,
             agent.save_visited_state(curr_state_id, action_idx)
             agent.cum_reward += reward
             aux_positions_names.add(features.get_position_name())
+            action_name = actions.map_action_to_str(action_idx, has_ball)
+            aux_actions_played.add(action_name)
             
             # Update environment features:
             prev_state_id = curr_state_id
             features.update_features(observation)
             curr_state_id = features.get_state_index()
-            
-            # Update agent
-            agent.learn(prev_state_id, action_idx, reward, status,
-                        curr_state_id)
-        print(':: Episode: {}; reward: {}; positions: {}; actions: {}'.format(
-            ep, agent.cum_reward, aux_positions_names, aux_actions_played))
+            agent.store_ep(state_idx=prev_state_id, action_idx=action_idx,
+                           reward=reward, next_state_idx=curr_state_id,
+                           has_ball=has_ball, done=not game_interface.in_game())
+        agent.learn()
+        # print(':: Episode: {}; reward: {}; epsilon: {}; positions: {}; '
+        #       'actions: {}'.format(ep, agent.cum_reward, agent.epsilon,
+        #                            aux_positions_names, aux_actions_played))
         agent.save_metrics(agent.old_q_table, agent.q_table)
         # Reset player:
         agent.reset()
-        agent.update_hyper_parameters()
+        agent.update_hyper_parameters(episode=ep,
+                                      num_total_episodes=num_episodes)
         # Game Reset
         game_interface.reset()
     agent.save_model()
-    actions_name = [actions_manager.map_action_to_str(i) for i in range(
-        agent.num_actions)]
+    actions_name = [actions_manager.map_action_to_str(i, has_ball=True) for i in
+                    range(agent.num_actions)]
     agent.export_metrics(training=True, actions_name=actions_name)
 
 
@@ -252,14 +307,13 @@ if __name__ == '__main__':
     hfo_interface.connect_to_server()
     
     # Agent set-up
-    reward_function = reward_functions.simple_reward
+    reward_function = reward_functions.basic_reward
     features_manager = discrete_features_v2.DiscreteFeaturesV2(num_team, num_op)
-    actions_manager = DiscreteActions()
-    agent = QLearningAgent(num_states=features_manager.get_num_states(),
-                           num_actions=actions_manager.get_num_actions(),
-                           learning_rate=0.1,
-                           discount_factor=0.99,  epsilon=1.0,
-                           epsilon_dec=0.9992)
+    actions_manager = DiscreteActionsV2()
+    agent = QLearningAgentV4(num_states=features_manager.get_num_states(),
+                             num_actions=actions_manager.get_num_actions(),
+                             learning_rate=0.1, discount_factor=0.99,
+                             epsilon=0.8)
     
     # Run training using Q-Learning
     if train_mode == "train_only":

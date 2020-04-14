@@ -30,7 +30,7 @@
 - ex NW far from goalie:  0.5;
 
 ### Goal Oppening angle [-1, 1]:
-É uma metrica um bocado manhosa though. O agente precia basicamente de estar
+É uma metrica um bocado manhosa though. O agente precisa basicamente de estar
  dentro da baliza para que seja maior que zero;
 - -1: closed angle;
 - 1: mid of goal, basically inside the goal;

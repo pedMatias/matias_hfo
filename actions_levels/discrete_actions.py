@@ -34,7 +34,7 @@ class DiscreteActions:
             if "UP" in action_name:
                 return action, x_pos, - 0.9
             elif "DOWN" in action_name:
-                return action, x_pos, - 0.9
+                return action, x_pos, 0.9
             elif "LEFT" in action_name:
                 return action, -0.8, y_pos
             elif "RIGHT" in action_name:

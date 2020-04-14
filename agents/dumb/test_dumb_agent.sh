@@ -12,7 +12,8 @@ $HFO --offense-agents 1 --offense-npcs 0 --defense-npcs 1 \
  --offense-on-ball 1  --trials 1 --fullstate --no-sync &
 # Sleep is needed to make sure doesn't get connected too soon, as unum 1 (goalie)
 
-OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/dumb_agent.py
+# OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/dumb_agent.py
+OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/test_ball_direccion.py
 
 sleep 5
 $PYTHON $OFFENSE_AGENT_FILE &
