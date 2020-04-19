@@ -45,11 +45,10 @@ def q_table_variation(old_q_table: np.ndarray, new_q_table: np.ndarray):
 
 
 def get_mean_value_list_by_range(l: list, rang: int = 10):
-    l_aux = l.copy()
     mean_list = []
-    while l_aux:
-        list_part = l_aux[:rang]
-        dim = len(list_part)
-        mean_list += [(sum(list_part)/dim)] * dim
-        l_aux = l_aux[rang:]
+    for idx, ele in enumerate(l):
+        ir = idx - rang if idx > rang else 0
+        fr = idx + rang if len(l) > idx + rang else len(l) - 1
+        list_part = l[ir:fr]
+        mean_list.append(sum(list_part)/len(list_part))
     return mean_list

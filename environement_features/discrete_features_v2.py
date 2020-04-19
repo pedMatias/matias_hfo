@@ -12,7 +12,7 @@ class DiscreteFeaturesV2(DiscreteHighLevelFeatures):
         - ball_position: [0, 1, 2, 3, 4]
     """
     positions_names = {0: "TOP LEFT", 1: "TOP RIGHT", 2: "MID LEFT",
-                       3: "MID RIGHT", 4: "BOTTOM LEFT", 5: "BOTTOM LEFT"}
+                       3: "MID RIGHT", 4: "BOTTOM LEFT", 5: "BOTTOM RIGHT"}
     goal_opening_angle_values = {1: "open angle", 0: "closed_angle"}
     proximity_opponent_values = {1: "opponent close", 0: "opponent far"}
     ball_position = {0: "Player Has Ball", 1: "Up", 2: "Right", 3: "Down",
@@ -76,9 +76,16 @@ class DiscreteFeaturesV2(DiscreteHighLevelFeatures):
             else:
                 return 1  # UP
             
-    def get_pos_tuple(self) -> tuple:
+    def get_pos_tuple(self, round_ndigits: int = -1) -> tuple:
         """ @return (x axis pos, y axis pos)"""
-        return self.agent.x_pos, self.agent.y_pos
+        if round_ndigits >= 0:
+            x_pos = round(self.agent.x_pos.item(), round_ndigits)
+            x_pos = abs(x_pos) if x_pos == -0.0 else x_pos
+            y_pos = round(self.agent.y_pos.item(), round_ndigits)
+            y_pos = abs(y_pos) if y_pos == -0.0 else y_pos
+            return x_pos, y_pos
+        else:
+            return self.agent.x_pos, self.agent.y_pos
         
     def update_features(self, observation: list):
         self._encapsulate_data(observation)

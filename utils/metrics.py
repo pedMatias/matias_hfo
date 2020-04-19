@@ -10,6 +10,13 @@ np.random.seed(1)
 
 from utils.utils import get_mean_value_list_by_range
 
+STATES_MAP = {"TOP LEFT": list(range(0, 120, 6)),
+              "TOP RIGHT": list(range(1, 120, 6)),
+              "MID LEFT": list(range(2, 120, 6)),
+              "MID RIGHT": list(range(3, 120, 6)),
+              "BOTTOM LEFT": list(range(4, 120, 6)),
+              "BOTTOM RIGHT": list(range(5, 120, 6))}
+
 
 class Plot:
     def __init__(self, title="", x_legend="", y_legend=""):
@@ -99,8 +106,8 @@ class TwoLineChart(Plot):
 
 
 class HeatMapPlot:
-    def __init__(self, data: list, x_labels: list):
-        self.figure = go.Figure(data=go.Heatmap(z=data, x=x_labels))
+    def __init__(self, data: list, x_labels: list, y_labels: list):
+        self.figure = go.Figure(data=go.Heatmap(z=data, x=x_labels, y=y_labels))
 
     def export_as_png(self, file_name: str):
         self.figure.write_image(file_name)
@@ -121,9 +128,9 @@ def json_to_metrics(dir: str, json_file: str):
     
     # Pre-process data:
     if reward:
-        reward = get_mean_value_list_by_range(reward, 10)
+        reward = get_mean_value_list_by_range(reward, 50)
     if q_variation:
-        q_variation = get_mean_value_list_by_range(q_variation, 10)
+        q_variation = get_mean_value_list_by_range(q_variation, 50)
     print("epsilons", epsilons)
     print("score", score)
     print("q_variation", q_variation)
@@ -171,5 +178,14 @@ def json_to_metrics(dir: str, json_file: str):
     # Visited States Counter - Actions Label:
     if visited_states_counter and actions_label:
         chart_name = "{}_visited_states_heat_map.png".format(mode)
-        c4 = HeatMapPlot(data=visited_states_counter, x_labels=actions_label)
+        y_label = []
+        new_data = []
+        for key, values in STATES_MAP.items():
+            aux_list = [visited_states_counter[i] for i in values]
+            array = np.array(aux_list)
+            res = np.sum(array, 0)
+            new_data.append(res.tolist())
+            y_label.append(key)
+        c4 = HeatMapPlot(data=new_data, x_labels=actions_label,
+                         y_labels=y_label)
         c4.export_as_png(os.path.join(dir, chart_name))
