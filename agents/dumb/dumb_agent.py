@@ -2,7 +2,8 @@ import random
 import time
 
 from hfo import HFOEnvironment, HIGH_LEVEL_FEATURE_SET, IN_GAME, MOVE, SHOOT, \
-    DRIBBLE, SERVER_DOWN, QUIT, KICK_TO, REORIENT, DRIBBLE_TO, NOOP, TURN
+    DRIBBLE, SERVER_DOWN, QUIT, KICK_TO, REORIENT, DRIBBLE_TO, NOOP, TURN, \
+    MOVE_TO
 
 from environement_features.discrete_features import \
     DiscreteHighLevelFeatures
@@ -21,19 +22,17 @@ if __name__ == '__main__':
         observation = hfo.getState()
         env = DiscreteHighLevelFeatures(num_team=NUM_TEAMMATES,
                                         num_op=NUM_OPPONENTS)
-        counter_moves = 0
-        counter_kicks = 0
+        ep_counter = 0
         while status == IN_GAME:
-            if counter_moves < 5:
-                print("DRIBBLE")
-                hfo.act(DRIBBLE_TO, -0.9, -0.8)
-                counter_moves += 1
-            elif counter_kicks < 2:
-                hfo.act(KICK_TO, 0.9, 0, 3)
-                counter_kicks += 1
-            else:
-                hfo.act(NOOP)
-            hfo.step()
+            hfo.act(DRIBBLE_TO, -0.5, 0)
+            
+            # check game status:
+            ep_counter += 1
+            status = hfo.step()
+            if status == SERVER_DOWN:
+                hfo.act(QUIT)
+                break
+           
         """
             
             if bool(env.has_ball(observation)) is False:

@@ -14,7 +14,7 @@ from agents.base.hfo_attacking_player import HFOAttackingPlayer
 from environement_features import discrete_features_v2, reward_functions
 from actions_levels.discrete_actions import DiscreteActions
 from matias_hfo import settings
-from utils.utils import q_table_variation, get_mean_value_list_by_range
+from utils.aux_functions import q_table_variation, get_mean_value_list_by_range
 from utils.metrics import BarChart, TwoLineChart, HeatMapPlot
 
 

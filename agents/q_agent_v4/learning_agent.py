@@ -13,7 +13,7 @@ from agents.base.hfo_attacking_player import HFOAttackingPlayer
 from environement_features import discrete_features_v2, reward_functions
 from actions_levels.discrete_actions_v2 import DiscreteActionsV2
 from matias_hfo import settings
-from utils.utils import q_table_variation
+from utils.aux_functions import q_table_variation
 
 
 class QLearningAgentV4:

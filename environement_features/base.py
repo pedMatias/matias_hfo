@@ -71,37 +71,37 @@ class BaseHighLevelState:
         goal_angle: float = 0
         proximity_op: float = 0
         pass_angle: float = 0
-        pos_x: float = 0
-        pos_y: float = 0
+        x_pos: float = 0
+        y_pos: float = 0
         uniform_num: int = 0
         
         def __init__(self, array: list):
             self.goal_angle = array[0]
             self.proximity_op = array[1]
             self.pass_angle = array[2]
-            self.pos_x = array[3]
-            self.pos_y = array[4]
+            self.x_pos = array[3]
+            self.y_pos = array[4]
             self.uniform_num = array[5]
         
         def to_array(self):
             return [self.goal_angle, self.proximity_op, self.pass_angle,
-                    self.pos_x, self.pos_y, self.uniform_num]
+                    self.x_pos, self.y_pos, self.uniform_num]
         
         def len(self):
             return len(self.to_array())
     
     class Opponent:
-        pos_x: float = 0
-        pos_y: float = 0
+        x_pos: float = 0
+        y_pos: float = 0
         uniform_num: int = 0
         
         def __init__(self, array: list):
-            self.pos_x = array[0]
-            self.pos_y = array[1]
+            self.x_pos = array[0]
+            self.y_pos = array[1]
             self.uniform_num = array[2]
         
         def to_array(self):
-            return [self.pos_x, self.pos_y, self.uniform_num]
+            return [self.x_pos, self.y_pos, self.uniform_num]
         
         def len(self):
             return len(self.to_array())

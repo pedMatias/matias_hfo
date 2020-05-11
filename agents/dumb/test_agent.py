@@ -1,7 +1,7 @@
 import random
 
 from hfo import HFOEnvironment, HIGH_LEVEL_FEATURE_SET, IN_GAME, MOVE, SHOOT, \
-    DRIBBLE, SERVER_DOWN, QUIT, MOVE_TO, INTERCEPT
+    DRIBBLE, SERVER_DOWN, QUIT, MOVE_TO, INTERCEPT, DRIBBLE_TO, KICK_TO, NOOP
 
 from environement_features.discrete_features_v2 import DiscreteFeaturesV2
 from settings import CONFIG_DIR
@@ -19,17 +19,32 @@ if __name__ == '__main__':
         observation = hfo.getState()
         env = DiscreteFeaturesV2(num_team=NUM_TEAMMATES, num_op=NUM_OPPONENTS)
         went_to_the_corner = False
-        while status == IN_GAME:
-            observation = hfo.getState()
-            print("\n>>> Oppening angle: ", observation[8], "; Opp distance: ",
-                  observation[9], "; Distance to Goal:", observation[6],
-                  "; Goal Center Angle:", observation[7])
-            env.update_features(observation)
-            if observation[5] == 1:
-                hfo.act(DRIBBLE)
-            else:
-                hfo.act(MOVE)
-            status = hfo.step()
-            if status == SERVER_DOWN:
-                hfo.act(QUIT)
-                break
+        ep = 0
+        print("NEW GAME:")
+        for i in range(4):
+            print("New game:")
+            print("Status: ",hfo.step())
+            status = IN_GAME
+            while status == IN_GAME:
+                print("waiting observation")
+                observation = hfo.getState()
+                env.update_features(observation)
+                pos_tuple = env.get_pos_tuple()
+                print("waiting action")
+                if ep < 10:
+                    hfo.act(DRIBBLE_TO, -0.7, 0)
+                elif ep < 20:
+                    hfo.act(DRIBBLE_TO, 0.4, 0)
+                elif ep == 20:
+                    print("SHOOT")
+                    # hfo.act(KICK_TO, 0.9, 0, 2)
+                    hfo.act(SHOOT)
+                else:
+                    hfo.act(SHOOT)
+                print("waiting step")
+                status = hfo.step()
+                ep += 1
+                if status == SERVER_DOWN:
+                    hfo.act(QUIT)
+                    break
+        hfo.act(QUIT)

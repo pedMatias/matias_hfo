@@ -15,7 +15,7 @@ from environement_features.discrete_features import \
 from actions_levels.BaseActions import ActionManager
 from environement_features.reward_functions import simple_reward
 from matias_hfo import settings
-from utils.utils import q_table_variation, get_mean_value_list_by_range
+from utils.aux_functions import q_table_variation, get_mean_value_list_by_range
 from utils.metrics import BarChart, TwoLineChart
 
 

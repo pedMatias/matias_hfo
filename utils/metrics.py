@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 import numpy as np
 np.random.seed(1)
 
-from utils.utils import get_mean_value_list_by_range
+from utils.aux_functions import get_mean_value_list_by_range
 
 STATES_MAP = {"TOP LEFT": list(range(0, 120, 6)),
               "TOP RIGHT": list(range(1, 120, 6)),
@@ -55,7 +55,8 @@ class BarChart(Plot):
 
 
 class LineChart(Plot):
-    def add_line_chart(self, x: list, y: list, name: str, type: str = None):
+    def add_line_chart(self, x: list, y: list, name: str, type: str = None,
+                       y_upper: list = None, y_lower: list = None):
         """
         @param x: x axis data
         @param y: y axis data
@@ -64,8 +65,19 @@ class LineChart(Plot):
         @return:
         """
         line = dict(dash=type)
-        trace = go.Scatter(x=x, y=y, name=name, line=line)
-        self.figure.add_trace(trace)
+        self.figure.add_trace(go.Scatter(x=x, y=y, name=name, line=line))
+        if y_upper and y_lower:
+            x_rev = x[::-1]
+            y_lower = y_lower[::-1]
+            self.figure.add_trace(go.Scatter(
+                x=x + x_rev,
+                y=y_upper + y_lower,
+                fill='toself',
+                #fillcolor='rgba(0,100,80,0.2)',
+                #line_color='rgba(255,255,255,0)',
+                showlegend=False,
+                name=name,
+            ))
 
 
 class TwoLineChart(Plot):
@@ -74,7 +86,8 @@ class TwoLineChart(Plot):
         self.figure.update_layout(title_text=title)
         self.figure.update_xaxes(title_text=x_legend)
     
-    def add_first_line_chart(self, x: list, y: list, name: str, y_legend: str):
+    def add_first_line_chart(self, x: list, y: list, name: str, y_legend: str,
+                             y_upper: list = None, y_lower: list = None):
         """
         @param x: x axis data
         @param y: y axis data
@@ -83,13 +96,29 @@ class TwoLineChart(Plot):
         @return:
         """
         self.figure.add_trace(
-            go.Scatter(x=x, y=y, name=name),
+            go.Scatter(x=x, y=y, name=name, line_color='rgba(25,0,250,1)'),
             secondary_y=False,
         )
-        self.figure.update_yaxes(title_text=y_legend,
-                                 secondary_y=False)
+        self.figure.update_yaxes(title_text=y_legend, secondary_y=False)
+        if y_upper is not None and y_lower is not None:
+            x_rev = x[::-1]
+            y_lower = y_lower[::-1]
+            self.figure.add_trace(
+                go.Scatter(
+                    x=x + x_rev,
+                    y=y_upper + y_lower,
+                    fill='toself',
+                    fillcolor='rgba(25,0,250,0.2)',
+                    line_color='rgba(255,255,255,0)',
+                    showlegend=False,
+                    name=name
+                ),
+                secondary_y=False,
+            )
     
-    def add_second_line_chart(self, x: list, y: list, name: str, y_legend: str):
+    def add_second_line_chart(self, x: list, y: list, name: str,
+                              y_legend: str, y_upper: object = None,
+                              y_lower: object = None):
         """
         @param x: x axis data
         @param y: y axis data
@@ -98,11 +127,25 @@ class TwoLineChart(Plot):
         @return:
         """
         self.figure.add_trace(
-            go.Scatter(x=x, y=y, name=name),
+            go.Scatter(x=x, y=y, name=name, line_color='rgba(250,0,0,1)'),
             secondary_y=True,
         )
         self.figure.update_yaxes(title_text=y_legend,
                                  secondary_y=True)
+        if y_upper is not None and y_lower is not None:
+            x_rev = x[::-1]
+            y_lower = y_lower[::-1]
+            self.figure.add_trace(
+                go.Scatter(
+                    x=x + x_rev,
+                    y=y_upper + y_lower,
+                    fill='toself',
+                    fillcolor='rgba(250,0,0,0.2)',
+                    line_color='rgba(255,255,255,0)',
+                    showlegend=False,
+                    name=name),
+                secondary_y=True,
+            )
 
 
 class HeatMapPlot:
@@ -132,7 +175,6 @@ def json_to_metrics(dir: str, json_file: str):
     if q_variation:
         q_variation = get_mean_value_list_by_range(q_variation, 50)
     print("epsilons", epsilons)
-    print("score", score)
     print("q_variation", q_variation)
     print("actions_label", actions_label)
     print("reward", reward)
@@ -189,3 +231,5 @@ def json_to_metrics(dir: str, json_file: str):
         c4 = HeatMapPlot(data=new_data, x_labels=actions_label,
                          y_labels=y_label)
         c4.export_as_png(os.path.join(dir, chart_name))
+        
+

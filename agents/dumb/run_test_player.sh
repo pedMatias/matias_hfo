@@ -25,18 +25,19 @@ DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/player_agent.py
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
 --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
- --offense-on-ball 11  --trials 1 --fullstate --no-sync --no-logging &
+ --offense-on-ball 11  --trials 1 --fullstate --no-sync --no-logging \
+ --frames-per-trial 100 &
 # Sleep is needed to make sure doesn't get connected too soon, as unum 1 (goalie)
 
 # OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/dumb_agent.py
-# OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/test_agent.py
-OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/test_ball_direccion.py
+OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/test_agent.py
+# OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/test_ball_direccion.py
 
-sleep 5
+sleep 2
 echo "Connect Offense Player"
 $PYTHON $OFFENSE_AGENT_FILE &
 
-sleep 5
+sleep 2
 echo "Connect Defense Player"
 $PYTHON $DEFENSE_AGENT_FILE  --num_episodes=1 &
 # .py &

@@ -11,10 +11,11 @@ PYTHON=$BASE_DIR/venv/bin/python
 
 # Train config:
 OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_v5/learning_agent.py
-TRAIN_MODE="train_only"  # ["train_only", "alternate", "test_in_the_end"]
-NUM_TRAIN_EP=10000
-NUM_TEST_EP=0
-NUM_EPISODES=$(($NUM_TRAIN_EP + $NUM_TEST_EP))
+TRAIN_MODE="alternate"  # ["train_only", "alternate", "test_in_the_end"]
+NUM_TRAIN_EP=500
+NUM_TEST_EP=50
+NUM_REPETITIONS=20
+NUM_EPISODES=$(($(($NUM_TRAIN_EP + $NUM_TEST_EP)) * NUM_REPETITIONS))
 echo "Episodes: $NUM_EPISODES"
 
 NUM_DEFENSES=1
@@ -33,15 +34,16 @@ $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
  --offense-on-ball 11  --trials $NUM_EPISODES --deterministic --fullstate \
  --no-logging \
-  --headless &
+ --headless &
 #  --no-sync  &
-# Sleep is needed to make sure doesn't get connected too soon, as unum 1 (goalie)
+# Sleep is needed to make sure doesn't get connected too soon
 
 sleep 2
 echo "Connect to player"
 $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
 --num_teammates=$TOTAL_TEAMMATES --train_mode=$TRAIN_MODE \
---num_train_ep=$NUM_TRAIN_EP --num_test_ep=$NUM_TEST_EP &
+--num_train_ep=$NUM_TRAIN_EP --num_test_ep=$NUM_TEST_EP \
+--num_repetitions=$NUM_REPETITIONS &
 echo "PLayer connected"
 
 sleep 2

@@ -10,7 +10,7 @@ from environement_features.discrete_features import \
     DiscreteHighLevelFeatures
 from actions_levels.BaseActions import ActionManager
 from environement_features.reward_functions import simple_reward
-from utils.utils import plot_learning
+from utils.aux_functions import plot_learning
 import settings
 
 

@@ -53,7 +53,7 @@ class DiscreteActionsV5:
         if action_name == "KICK_TO_GOAL":
             return (KICK_TO, 0.9, 0, 2), num_repetitions
         elif action_name == "NOOP":
-            return (NOOP), num_repetitions
+            return NOOP, num_repetitions
         else:
             # Get num_repetitions:
             if "SHORT" in action_name:

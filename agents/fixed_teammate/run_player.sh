@@ -11,24 +11,33 @@ export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
 echo $PYTHONPATH
 
 NUM_EPISODES=10
-NUM_DEFENSES=1
+NUM_DEFENSES=0
 NUM_DEFENSES_NPCS=0
-NUM_OFFENSES=0
-NUM_OFFENSES_NPCS=1
+NUM_OFFENSES=2
+NUM_OFFENSES_NPCS=0
 
-AGENT_FILE=$PROJECT_DIR/agents/goalkeeper/goalkeeper_v2.py
+FIXED_AGENT_FILE=$PROJECT_DIR/agents/fixed_teammate/player_agent.py
+STATIC_AGENT_FILE=$PROJECT_DIR/agents/fixed_teammate/static_agent.py
 
 echo $HFO
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
- --offense-on-ball 11 --trials $NUM_EPISODES \
+  --trials $NUM_EPISODES \
  --deterministic --fullstate --no-sync --no-logging &
 # Sleep is needed to make sure doesn't get connected too soon, as unum 1 (goalie)
 
-sleep 5
+sleep 3
 echo "Connect to player"
-$PYTHON $AGENT_FILE  --num_episodes=$NUM_EPISODES &
+$PYTHON $STATIC_AGENT_FILE  --num_episodes=$NUM_EPISODES --num_opponents=0 \
+--num_teammates=1 &
 echo "PLayer connected"
+
+sleep 3
+echo "Connect to player"
+$PYTHON $FIXED_AGENT_FILE  --num_episodes=$NUM_EPISODES --num_opponents=0 \
+--num_teammates=1 &
+echo "PLayer connected"
+
 # .py &
 # The magic line
 #   $$ holds the PID for this script
