@@ -54,7 +54,7 @@ class DiscreteFeatures1TeammateV1(DiscreteHighLevelFeatures):
         @return: 0 if teammate near goal, 1 otherwise
         @rtype: int
         """
-        goal_coord = np.array([0, 0])
+        goal_coord = np.array([1, 0])
         if self.teammate_coord[0] == -2 or self.teammate_coord[1] == -2:
             return 1  # invalid teammate position (out of scope)
         

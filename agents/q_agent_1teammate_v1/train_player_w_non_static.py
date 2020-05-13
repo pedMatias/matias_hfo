@@ -11,7 +11,7 @@ from agents.base.hfo_attacking_player import HFOAttackingPlayer
 from environement_features.discrete_features_1teammate_v1 import \
     DiscreteFeatures1TeammateV1
 from environement_features.reward_functions import basic_reward
-from actions_levels.discrete_actions_1teammate_v1 import \
+from actions_levels.discrete_actions_1teammate_v1 import ORIGIN_POSITIONS, \
     DiscreteActions1TeammateV1, go_to_origin_position, execute_action
 from utils.aux_functions import q_table_variation
 from agents.q_agent_1teammate_v1.aux import mkdir, save_model, \
@@ -35,6 +35,7 @@ def test(num_episodes: int, game_interface: HFOAttackingPlayer,
     """
     # Run training using Q-Learning
     num_goals = 0
+    start_pos_list = list(ORIGIN_POSITIONS.keys())
     for ep in range(num_episodes):
         # Check if server still up:
         if game_interface.hfo.step() == SERVER_DOWN:
@@ -42,7 +43,11 @@ def test(num_episodes: int, game_interface: HFOAttackingPlayer,
             break
         # Go to origin position:
         features.update_features(game_interface.get_state())
-        go_to_origin_position(game_interface=game_interface,
+        # Set game start condition:
+        if not start_pos_list:
+            start_pos_list = list(ORIGIN_POSITIONS.keys())
+        start_pos = start_pos_list.pop()
+        go_to_origin_position(game_interface=game_interface, pos_name=start_pos,
                               features=features, actions=actions)
         # Test loop:
         debug_counter = 0  # TODO remove
@@ -53,25 +58,19 @@ def test(num_episodes: int, game_interface: HFOAttackingPlayer,
 
             # Act:
             debug_counter += 1
-            action_idx = agent.exploit_actions(curr_state_id)
-            hfo_action_params, num_rep = \
-                actions.map_action_idx_to_hfo_action(
-                    agent_pos=features.get_pos_tuple(), has_ball=has_ball,
-                    action_idx=action_idx, teammate_pos=features.teammate_coord)
-            # action_name = actions.map_action_to_str(action_idx, has_ball)
-            # print("Agent playing {} for {}".format(action_name, num_rep))
-            
+            action_idx = agent.act(curr_state_id)
+            action_name = actions.map_action_to_str(action_idx, has_ball)
+            print("Agent playing {}".format(action_name))
+
             # Step:
-            status, observation = execute_action(
-                action_params=hfo_action_params, repetitions=num_rep,
-                has_ball=has_ball, game_interface=game_interface)
+            status = execute_action(action_name=action_name, features=features,
+                                    game_interface=game_interface)
             
             # update features:
             reward = reward_funct(status)
-            features.update_features(observation)
         num_goals += 1 if reward == 1 else 0
         
-        if status == OUT_OF_TIME:
+        if game_interface.get_game_status() == OUT_OF_TIME:
             if debug_counter < 5:
                 raise NoActionPlayedError("agent was only able to choose {}"
                                           .format(debug_counter))
@@ -121,28 +120,22 @@ def train(num_train_episodes: int, num_total_train_ep: int,
             # Act:
             debug_counter += 1
             action_idx = agent.act(curr_state_id)
-            hfo_action_params, num_rep =\
-                actions.map_action_idx_to_hfo_action(
-                    agent_pos=features.get_pos_tuple(), has_ball=has_ball,
-                    action_idx=action_idx, teammate_pos=features.teammate_coord)
-            # action_name = actions.map_action_to_str(action_idx, has_ball)
+            action_name = actions.map_action_to_str(action_idx, has_ball)
             # print("Agent playing {} for {}".format(action_name, num_rep))
 
             # Step:
-            status, observation = execute_action(
-                action_params=hfo_action_params, repetitions=num_rep,
-                has_ball=has_ball, game_interface=game_interface)
+            status = execute_action(action_name=action_name, features=features,
+                                    game_interface=game_interface)
             
             # Update environment features:
             reward = reward_funct(status)
             sum_score += reward
-            features.update_features(observation)
             new_state_id = features.get_state_index()
             agent.store_ep(state_idx=curr_state_id, action_idx=action_idx,
                            reward=reward, next_state_idx=new_state_id,
                            has_ball=has_ball,
                            done=not game_interface.in_game())
-        if status == OUT_OF_TIME:
+        if game_interface.get_game_status() == OUT_OF_TIME:
             if debug_counter < 5:
                 raise NoActionPlayedError("agent was only able to choose {}".
                                           format(debug_counter))
@@ -196,7 +189,8 @@ if __name__ == '__main__':
     # Load Model
     model_file = args.model_file
     # Directory
-    save_dir = args.save_dir or mkdir(num_episodes, num_op, extra_note="oldEps")
+    save_dir = args.save_dir or mkdir(num_episodes, num_op,
+                                      extra_note="retrain")
     
     # Initialize connection with the HFO server
     hfo_interface = HFOAttackingPlayer(num_opponents=num_op,

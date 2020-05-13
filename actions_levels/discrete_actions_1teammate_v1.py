@@ -1,6 +1,6 @@
 import random
 
-from hfo import MOVE_TO, DRIBBLE_TO, KICK_TO, NOOP
+from hfo import MOVE_TO, DRIBBLE_TO, KICK_TO, NOOP, SHOOT, PASS
 import numpy as np
 
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
@@ -67,7 +67,7 @@ class DiscreteActions1TeammateV1:
         if action_name == "KICK_TO_GOAL":
             return (KICK_TO, 0.9, 0, 2), num_repetitions
         elif action_name == "PASS":
-            return (KICK_TO, teammate_pos[0], teammate_pos[1], 1), \
+            return (KICK_TO, teammate_pos[0], teammate_pos[1], 1.5), \
                    num_repetitions
         elif action_name == "NOOP":
             return NOOP, num_repetitions
@@ -98,27 +98,118 @@ class DiscreteActions1TeammateV1:
                 return (action, 0.8, y_pos), num_repetitions
             else:
                 raise ValueError("ACTION NAME is WRONG")
+
+
+def shoot_ball(game_interface: HFOAttackingPlayer,
+               features: DiscreteFeatures1TeammateV1):
+    # print("shoot_ball!")
+    attempts = 0
+    while game_interface.in_game() and features.has_ball():
+        if attempts > 3:
+            break
+        elif attempts == 3:
+            # Failed to kick four times
+            print("Failed to SHOOT 3 times. WILL KICK")
+            y = random.choice([0.17, 0, -0.17])
+            hfo_action = (KICK_TO, 0.9, y, 2)
+        else:
+            hfo_action = (SHOOT,)
+        status, observation = game_interface.step(hfo_action,
+                                                  features.has_ball())
+        features.update_features(observation)
+        attempts += 1
+    return status, observation
+
+
+def pass_ball(game_interface: HFOAttackingPlayer,
+              features: DiscreteFeatures1TeammateV1):
+    # print("pass_ball!")
+    attempts = 0
+    while game_interface.in_game() and features.has_ball():
+        if attempts > 2:
+            break
+        elif attempts == 2:
+            # Failed to pass 2 times
+            print("Failed to PASS two times. WILL KICK")
+            y = random.choice([0.17, 0, -0.17])
+            hfo_action = (KICK_TO, 0.9, y, 2)
+        else:
+            hfo_action = (PASS, 11)
+        status, observation = game_interface.step(hfo_action,
+                                                  features.has_ball())
+        features.update_features(observation)
+        attempts += 1
+    return status, observation
+
+
+def move_agent(action_name, game_interface: HFOAttackingPlayer,
+               features: DiscreteFeatures1TeammateV1):
+    # print("move_agent!")
+    if "SHORT" in action_name:
+        num_repetitions = 10
+    elif "LONG" in action_name:
+        num_repetitions = 20
+    else:
+        raise ValueError("ACTION NAME is WRONG")
+    
+    # Get Movement type:
+    if "MOVE" in action_name:
+        action = MOVE_TO
+    elif "DRIBBLE" in action_name:
+        action = DRIBBLE_TO
+    else:
+        raise ValueError("ACTION NAME is WRONG")
+    
+    if "UP" in action_name:
+        action = (action, features.agent_coord[0], - 0.9)
+    elif "DOWN" in action_name:
+        action = (action, features.agent_coord[0], 0.9)
+    elif "LEFT" in action_name:
+        action = (action, -0.8, features.agent_coord[1])
+    elif "RIGHT" in action_name:
+        action = (action, 0.8, features.agent_coord[1])
+    else:
+        raise ValueError("ACTION NAME is WRONG")
+
+    attempts = 0
+    while game_interface.in_game() and attempts < num_repetitions:
+        status, observation = game_interface.step(action, features.has_ball())
+        features.update_features(observation)
+        attempts += 1
+    return status, observation
+
+
+def do_nothing(game_interface: HFOAttackingPlayer,
+               features: DiscreteFeatures1TeammateV1):
+    action = (NOOP, )
+    status, observation = game_interface.step(action, features.has_ball())
+    return status, observation
             
 
-def execute_action(action_params: tuple, repetitions:int,
-                   game_interface: HFOAttackingPlayer, has_ball: bool):
-    rep_counter_aux = 0
-    observation = []
-    while game_interface.in_game() and rep_counter_aux < repetitions:
-        status, observation = game_interface.step(action_params, has_ball)
-        rep_counter_aux += 1
-    return game_interface.get_game_status(), observation
+def execute_action(action_name, game_interface: HFOAttackingPlayer,
+                   features: DiscreteFeatures1TeammateV1):
+    if action_name == "KICK_TO_GOAL":
+        status, observation = shoot_ball(game_interface, features)
+    elif action_name == "PASS":
+        status, observation = pass_ball(game_interface, features)
+    elif "MOVE" in action_name or "DRIBBLE" in action_name:
+        status, observation = move_agent(action_name, game_interface, features)
+    elif action_name == "NOOP":
+        status, observation = do_nothing(game_interface, features)
+    else:
+        raise ValueError("Action Wrong name")
+    features.update_features(observation)
+    return status
 
 
 def go_to_origin_position(game_interface: HFOAttackingPlayer,
                           features: DiscreteFeatures1TeammateV1,
                           actions: DiscreteActions1TeammateV1,
-                          random_start: bool = True):
-    if random_start:
-        pos_name, origin_pos = random.choice(list(ORIGIN_POSITIONS.items()))
+                          pos_name: str = None):
+    if pos_name:
+        origin_pos = ORIGIN_POSITIONS[pos_name]
     else:
-        pos_name = "Fixed start"
-        origin_pos = features.get_pos_tuple()
+        pos_name, origin_pos = random.choice(list(ORIGIN_POSITIONS.items()))
     # print("\nMoving to starting point: {0}".format(pos_name))
     pos = features.get_pos_tuple(round_ndigits=1)
     while origin_pos != pos:
@@ -128,7 +219,15 @@ def go_to_origin_position(game_interface: HFOAttackingPlayer,
         features.update_features(observation)
         pos = features.get_pos_tuple(round_ndigits=1)
     # Informs the teammate that it is ready to start the game
-    game_interface.hfo.say(settings.PLAYER_READY_MSG)
-    game_interface.hfo.step()
-    game_interface.hfo.say(settings.PLAYER_READY_MSG)
-    game_interface.hfo.step()
+    teammate_last_coord = features.teammate_coord.copy()
+    counter = 0
+    while teammate_last_coord.tolist() == features.teammate_coord.tolist():
+        if counter >= 10:
+            # print("STOP repeating the message")
+            break
+        game_interface.hfo.say(settings.PLAYER_READY_MSG)
+        game_interface.hfo.step()
+        observation = game_interface.hfo.getState()
+        features.update_features(observation)
+        # print("Action said READY!")
+        counter += 1

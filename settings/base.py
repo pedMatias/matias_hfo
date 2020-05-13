@@ -7,4 +7,4 @@ PLOT_FILE_NAME_FORMAT = "{agent_type}_{num_episodes}ep_{date}"
 
 TRAIN_MODES = ['train_only', 'alternate', 'test_in_the_end']
 
-PLAYER_READY_MSG = "READY"
+PLAYER_READY_MSG = "START GAME"

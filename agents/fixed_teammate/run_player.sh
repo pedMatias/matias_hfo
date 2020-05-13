@@ -11,13 +11,24 @@ export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
 echo $PYTHONPATH
 
 NUM_EPISODES=10
-NUM_DEFENSES=0
+
+NUM_DEFENSES=1
 NUM_DEFENSES_NPCS=0
+TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
+TOTAL_OPPONENTS=$TOTAL_DEFENSES
+echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
+
 NUM_OFFENSES=2
 NUM_OFFENSES_NPCS=0
+TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
+TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
+echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
+# Players files:
 FIXED_AGENT_FILE=$PROJECT_DIR/agents/fixed_teammate/player_agent.py
 STATIC_AGENT_FILE=$PROJECT_DIR/agents/fixed_teammate/static_agent.py
+
+DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/goalkeeper_v2.py
 
 echo $HFO
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
@@ -26,17 +37,22 @@ $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --deterministic --fullstate --no-sync --no-logging &
 # Sleep is needed to make sure doesn't get connected too soon, as unum 1 (goalie)
 
-sleep 3
-echo "Connect to player"
-$PYTHON $STATIC_AGENT_FILE  --num_episodes=$NUM_EPISODES --num_opponents=0 \
---num_teammates=1 &
-echo "PLayer connected"
+sleep 2
+echo "Connect to Fixed player"
+$PYTHON $FIXED_AGENT_FILE  --num_episodes=$NUM_EPISODES \
+--num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES \
+--wait_for_teammate=$false &
 
-sleep 3
-echo "Connect to player"
-$PYTHON $FIXED_AGENT_FILE  --num_episodes=$NUM_EPISODES --num_opponents=0 \
---num_teammates=1 &
-echo "PLayer connected"
+sleep 2
+echo "Connect to Fixed player"
+$PYTHON $FIXED_AGENT_FILE  --num_episodes=$NUM_EPISODES \
+--num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES \
+--wait_for_teammate=$false &
+
+sleep 2
+echo "Connect Defense Player"
+$PYTHON $DEFENSE_AGENT_FILE  --num_episodes=$NUM_EPISODES \
+--num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
 
 # .py &
 # The magic line

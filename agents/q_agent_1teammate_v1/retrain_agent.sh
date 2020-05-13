@@ -12,7 +12,7 @@ PYTHON=$BASE_DIR/venv/bin/python
 # Train config:
 NUM_TRAIN_EP=500
 NUM_TEST_EP=50
-NUM_REPETITIONS=20
+NUM_REPETITIONS=10
 NUM_EPISODES=$(($(($(($NUM_TRAIN_EP + $NUM_TEST_EP)) * $NUM_REPETITIONS)) + $NUM_TEST_EP))
 echo "Episodes: $NUM_EPISODES"
 
@@ -31,7 +31,8 @@ echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 # Start Model:
 MODEL_FILE=$BASE_DIR/matias_hfo/data/q_agent_train_11000ep_1op_oldEps_2020-05-03_22:45:00/agent_model.npy
 OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_1teammate_v1/train_player_w_non_static.py
-DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/player_agent.py
+# DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/player_agent.py
+DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/goalkeeper_v2.py
 STATIC_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_teammate/player_agent.py
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
@@ -39,7 +40,7 @@ $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --offense-on-ball 6  --trials $NUM_EPISODES --deterministic --fullstate \
  --no-logging --frames-per-trial 500 --untouched-time 400  --message-size 10 \
  --headless >> hfo.log &
- --no-sync >> hfo.log &
+#  --no-sync >> hfo.log &
 # Sleep is needed to make sure doesn't get connected too soon
 
 sleep 2

@@ -18,7 +18,7 @@ ACTIONS = {"MOVE_UP": (MOVE_TO, -0.75, -0.2),
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_episodes', type=int, default=500)
-    parser.add_argument('--num_offenses', type=int, default=0)
+    parser.add_argument('--num_offenses', type=int, default=1)
     parser.add_argument('--num_defenses', type=int, default=0)
     
     args = parser.parse_args()
