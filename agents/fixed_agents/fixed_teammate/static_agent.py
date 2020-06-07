@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_opponents', type=int, default=0)
     parser.add_argument('--num_teammates', type=int, default=0)
     parser.add_argument('--num_episodes', type=int, default=500)
+    parser.add_argument('--wait_for_teammate', type=bool, default=True)
     
     args = parser.parse_args()
     agent_id = args.id
