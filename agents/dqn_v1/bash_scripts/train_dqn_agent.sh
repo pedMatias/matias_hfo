@@ -11,9 +11,9 @@ PYTHON=$BASE_DIR/venv/bin/python
 MODULE_DIR=$BASE_DIR/matias_hfo/agents
 
 # Train config:
-NUM_TRAIN_EP=1000
-NUM_TEST_EP=60
-NUM_REPETITIONS=10
+NUM_TRAIN_EP=2000
+NUM_TEST_EP=30
+NUM_REPETITIONS=25
 NUM_EPISODES=$(($(($NUM_TRAIN_EP + $NUM_TEST_EP)) * $NUM_REPETITIONS))
 echo "Episodes: $NUM_EPISODES"
 
@@ -29,8 +29,8 @@ TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
-DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/player_agent.py
-# DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/goalkeeper_v2.py
+# DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/good_teammate.py
+DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/goalkeeper_v2.py
 STATIC_AGENT_FILE=$MODULE_DIR/fixed_agents/fixed_teammate/static_agent.py
 
 OFFENSE_AGENT_FILE=$MODULE_DIR/dqn_v1/dqn_train.py

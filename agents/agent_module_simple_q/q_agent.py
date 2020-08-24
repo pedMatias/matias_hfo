@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+from collections import deque
 
 from keras import initializers
 from keras.models import Sequential, load_model
@@ -7,18 +8,10 @@ from keras.layers import Dense, Activation, Input
 from keras.optimizers import Adam
 from keras.callbacks import TensorBoard
 import tensorflow as tf
-from collections import deque
 import time
 import random
 
 from agents.base.agent import Agent
-
-
-REPLAY_MEMORY_SIZE = 50_000  # How many last steps to keep for model training
-MIN_REPLAY_MEMORY_SIZE = 60 #1_000  # Minimum number of steps in a memory to  start training
-MINIBATCH_SIZE = 30 # 64  # How many steps (samples) to use for training
-UPDATE_TARGET_EVERY = 2  # 5  # Terminal states (end of episodes)
-MODEL_NAME = '2x256'
 
 # For more repetitive results
 random.seed(2)
@@ -27,102 +20,93 @@ tf.set_random_seed(2)
 
 
 # Agent class
-class DQNAgent(Agent):
+class QAgent(Agent):
     def __init__(self, num_features: int, num_actions: int,
                  learning_rate: float = 0.1, discount_factor: float = 0.9,
-                 epsilon: float = 0.9, final_epsilon: float = 0.2):
+                 epsilon: float = 0.9, final_epsilon: float = 0.3):
         
         super().__init__(num_features, num_actions, learning_rate,
                          discount_factor, epsilon, final_epsilon)
+        # Learning buffer
+        self.transition_buffer = list()
 
-        # Target network
-        self.target_model = self.create_model(num_features, num_actions)
-        self.target_model.set_weights(self.model.get_weights())
-
-        # An array with last n steps for training
-        self.replay_memory = deque(maxlen=REPLAY_MEMORY_SIZE)
-
-        # Count when to update target network with main network's weights
-        self.target_update_counter = 0
+        # Main model
+        self.model = self.create_model(num_features, num_actions)
 
     def create_model(self, num_features: int, num_actions: int):
         model = Sequential()
         model.add(Dense(64, input_shape=(num_features,)))
         model.add(Activation('relu'))
-        # model.add(Dense(16))
-        # model.add(Activation('relu'))
-        model.add(Dense(num_actions, activation='linear',
-                        kernel_initializer=initializers.Zeros(),
-                        bias_initializer=initializers.Zeros()))
+        model.add(Dense(64))
+        model.add(Activation('relu'))
+        model.add(Dense(num_actions, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(lr=self.learning_rate),
                       metrics=['accuracy'])
         return model
-    
-    def store_transition(self, curr_st: np.ndarray, action_idx: int,
-                         reward: int, new_st: np.ndarray, done: int):
-        """ Adds step's data to a memory replay array
-        (observation space, action, reward, new observation space, done) """
-        transition = np.array([curr_st, action_idx, reward, new_st, done])
-        self.replay_memory.append(transition)
+   
+    def get_qs(self, state: np.ndarray, model=None):
+        """ Queries main network for Q values given current observation space"""
+        state = state[np.newaxis, :]
+        if model is None:
+            qs = self.model.predict(state)
+        else:
+            qs = model.predict(state)
+        return qs[0]
 
-    def train(self, terminal_state):
+    def train(self, goal: bool):
         """ Trains main network every step during episode """
-        # Start training only if certain number of samples is already saved
-        if len(self.replay_memory) < MIN_REPLAY_MEMORY_SIZE:
-            return
 
-        # Get a minibatch of random samples from memory replay table
-        minibatch = random.sample(self.replay_memory, MINIBATCH_SIZE)
-
-        # Get current states from minibatch, then query NN model for Q values
-        current_states = np.array([transition[0] for transition in minibatch])
-        current_qs_list = self.model.predict(current_states)
-        # Get future states from minibatch, then query NN model for Q values
-        new_states = np.array([transition[3] for transition in minibatch])
-        future_qs_list = self.target_model.predict(new_states)
-
-        X = []
-        y = []
+        def remove_mov_without_ball(transitions):
+            """ remove movements without ball """
+            last_reward = transitions[-1][2]
+            has_ball = False
+            i = len(transitions) - 1
+            while not has_ball:
+                if i < 0:  # Never caught the ball
+                    return []  # Will not learn
+                elif transitions[i][0][6] == 0:  # HAS BALL
+                    transitions = transitions[:i + 1]
+                    transitions[-1][2] = last_reward
+                    transitions[-1][4] = True
+                    return transitions
+                else:
+                    i -= 1
+        
+        buffer = self.transition_buffer.copy()
+        if goal:
+            buffer = remove_mov_without_ball(buffer)
 
         # Now we need to enumerate our batches
-        for idx, (curr_st, action, r, new_st, done) in enumerate(minibatch):
-
+        buffer.reverse()
+        for idx, (curr_st, action, r, new_st, done) in enumerate(buffer):
             # If not a terminal state, get new q from future states, else 0
             # almost like with Q Learning, but we use just part of equation here
             if not done:
-                max_future_q = np.max(future_qs_list[idx])
+                future_qs = self.get_qs(state=new_st)
+                max_future_q = np.max(future_qs)
                 new_q = r + self.discount_factor * max_future_q
             else:
                 new_q = r
 
             # Update Q value for given state
-            current_qs = current_qs_list[idx]
+            current_qs = self.get_qs(curr_st)
             current_qs[action] = new_q
 
             # And append to our training data
-            X.append(curr_st)
-            y.append(current_qs)
+            X = curr_st if isinstance(curr_st, np.ndarray) else np.array(curr_st)
+            y = current_qs if isinstance(current_qs, np.ndarray) \
+                else np.array(current_qs)
+            # Convert Format:
+            X = X[np.newaxis, :]
+            y = y[np.newaxis, :]
+            
+            # Fit on all samples as one batch, log only on terminal state
+            self.model.fit(X, y, verbose=0, shuffle=False)
 
-        # Fit on all samples as one batch, log only on terminal state
-        self.model.fit(np.array(X), np.array(y), batch_size=MINIBATCH_SIZE,
-                       verbose=0, shuffle=False,
-                       callbacks=[self.tensorboard] if terminal_state else None)
+        # Inc number of trained episodes:
+        self.trained_eps += 1
+        self.transition_buffer = []
 
-        # Update target network counter every episode
-        if terminal_state:
-            self.target_update_counter += 1
-
-        # If counter reaches set value, update target network
-        if self.target_update_counter > UPDATE_TARGET_EVERY:
-            self.target_model.set_weights(self.model.get_weights())
-            self.target_update_counter = 0
-
-    # Queries main network for Q values given current observation space
-    def get_qs(self, state: np.ndarray):
-        state = state[np.newaxis, :]
-        qs = self.model.predict(state)
-        return qs
-    
     def save_model(self, file_name: str):
         self.model.save(file_name)
 

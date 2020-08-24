@@ -15,8 +15,8 @@ TEAMMATES_DIR=$BASE_DIR/matias_hfo/agents/fixed_agents/fixed_teammate
 AGENTS_DIR=$BASE_DIR/matias_hfo/agents/dqn_v1
 
 # Agents Files:
-DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/player_agent.py
-# DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/goalkeeper_v2.py
+# DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/good_teammate.py
+DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/goalkeeper_v2.py
 STATIC_AGENT_FILE=$TEAMMATES_DIR/static_agent.py
 OFFENSE_AGENT_FILE=$AGENTS_DIR/dumb/test_agent.py
 
@@ -37,7 +37,7 @@ echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
- --offense-on-ball 6  --trials $NUM_EPISODES --deterministic --fullstate \
+ --offense-on-ball 7  --trials $NUM_EPISODES --deterministic --fullstate \
  --no-logging --frames-per-trial 300 --untouched-time 60 --port $PORT\
  --no-sync >> hfo.log &
 # --headless >> hfo.log &

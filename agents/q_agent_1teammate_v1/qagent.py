@@ -21,8 +21,6 @@ class QLearningAgent:
         self.trained_eps = 0
         self.learning_buffer = []
         self.q_table = np.random.rand(num_states, num_actions)
-        self.counter_explorations = 0
-        self.counter_exploitations = 0
     
     def load_q_table(self, load_file):
         print("Loading Q table from file {}".format(load_file))
@@ -30,13 +28,11 @@ class QLearningAgent:
     
     def explore_actions(self):
         # print("Exploring action")
-        self.counter_explorations += 1
         random_action = np.random.randint(0, self.num_actions)
         return random_action
     
     def exploit_actions(self, state_idx: int) -> int:
         # print("Exploiting action")
-        self.counter_exploitations += 1
         max_list = np.where(self.q_table[state_idx] ==
                             self.q_table[state_idx].max())
         if len(max_list[0]) > 1:

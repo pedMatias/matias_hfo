@@ -8,10 +8,9 @@ from hfo import GOAL, IN_GAME, CAPTURED_BY_DEFENSE, OUT_OF_TIME, OUT_OF_BOUNDS
 import settings
 from agents.utils import ServerDownError
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
-# from agents.dqn_v1.q_agent import QAgent
 from agents.dqn_v1.deep_agent import DQNAgent
 from agents.dqn_v1.actions.simple import Actions
-from agents.dqn_v1.features.discrete_features import DiscFeatures1Teammate
+from agents.dqn_v1.features.plastic_features import PlasticFeatures
 
 STARTING_POSITIONS = {"TOP LEFT": (-0.5, -0.7), "TOP RIGHT": (0.4, -0.7),
                       "MID LEFT": (-0.5, 0.0), "MID RIGHT": (0.4, 0.0),
@@ -28,16 +27,16 @@ class Player:
         if online:
             self.game_interface.connect_to_server()
         # Features Interface:
-        self.features = DiscFeatures1Teammate(num_op=num_opponents,
-                                              num_team=num_teammates)
+        self.features = PlasticFeatures(num_op=num_opponents,
+                                        num_team=num_teammates)
         # Actions Interface:
         self.actions = Actions()
         # Agent instance:
         self.agent = DQNAgent(num_features=self.features.num_features,
                               num_actions=self.actions.get_num_actions(),
-                              learning_rate=0.005, discount_factor=0.95,
-                              epsilon=1, final_epsilon=0.01,
-                              epsilon_decay=0.9995, tau=0.125)
+                              learning_rate=0.005, discount_factor=0.99,
+                              epsilon=1, final_epsilon=0.001,
+                              epsilon_decay=0.99995, tau=0.125)
     
     def get_reward(self, game_status: int) -> int:
         if game_status == GOAL:
@@ -48,7 +47,7 @@ class Player:
             return -1
     
     def set_starting_game_conditions(self, game_interface: HFOAttackingPlayer,
-                                     features: DiscFeatures1Teammate,
+                                     features: PlasticFeatures,
                                      start_with_ball: bool = True,
                                      start_pos: tuple = None):
         """
@@ -190,19 +189,20 @@ class Player:
                         [features_array, action_idx, self.get_reward(status),
                          self.features.get_features(), done])
                     episode_buffer.append(transition)
-
-                    self.agent.train(done)
-                    
+                    # Train:
+                    self.agent.train(terminal_state=done)
                 # No ball:
                 else:
                     status = self.actions.no_ball_action(
                         features=self.features,
                         game_interface=self.game_interface)
+                    
             if self.game_interface.scored_goal() or status == GOAL:
                 _num_wins += 1
                 reward = self.get_reward(GOAL)
             else:
                 reward = self.get_reward(status)
+            # Add episodes:
             self.agent.store_episode(episode_buffer, reward=reward)
             # Update auxiliar variables:
             _sum_epsilons += self.agent.epsilon

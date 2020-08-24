@@ -6,14 +6,7 @@ import os
 import numpy as np
 
 from matias_hfo import settings
-
-
-class NoActionPlayedError(Exception):
-    pass
-
-
-class ServerDownError(Exception):
-    pass
+from matias_hfo.agents.utils import ServerDownError, NoActionPlayedError
         
 
 def mkdir(name=None, num_episodes=None, num_op=None, extra_note=None):

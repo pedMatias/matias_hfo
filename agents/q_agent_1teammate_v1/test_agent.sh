@@ -13,8 +13,7 @@ PYTHON=$BASE_DIR/venv/bin/python
 # Test config:
 OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_1teammate_v1/test_player.py
 # Q table:
-# Q_TABLE=$DATA_DIR/q_agent_train_1ep_oldEps_2020-05-12_19:46:00/agent_model.npy
-Q_TABLE=$DATA_DIR/q_agent_train_1ep_oldEps_2020-05-12_19:46:00/original_model.npy
+Q_TABLE=$DATA_DIR/q_agent_train_1ep_retrain_2020-05-14_00:34:00/agent_model.npy
 
 NUM_EPISODES=30
 
@@ -30,10 +29,10 @@ TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
-# DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/player_agent.py
+# DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/good_teammate.py
 DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/goalkeeper_v2.py
-# STATIC_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_teammate/player_agent.py
-STATIC_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_teammate/static_agent.py
+STATIC_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_teammate/player_agent.py
+#  STATIC_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_teammate/static_teammate.py
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \

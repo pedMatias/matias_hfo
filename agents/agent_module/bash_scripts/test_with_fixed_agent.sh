@@ -6,14 +6,15 @@ export PYTHONPATH=/home/matias/Desktop/HFO/matias_hfo:$PYTHONPATH
 echo $PYTHONPATH
 
 BASE_DIR=/home/matias/Desktop/HFO
-DATA_DIR=$BASE_DIR/matias_hfo/data
 HFO=$BASE_DIR/bin/HFO
 PYTHON=$BASE_DIR/venv/bin/python
+MODULE_DIR=$BASE_DIR/matias_hfo/agents
+DATA_DIR=$BASE_DIR/matias_hfo/data
 
 # Test config:
-OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_1teammate_v1/test_player.py
+OFFENSE_AGENT_FILE=$MODULE_DIR/agent_module/test.py
 # Q table:
-Q_TABLE=$DATA_DIR/q_agent_train_1ep_retrain_2020-05-14_00:34:00/agent_model.npy
+Q_TABLE=$DATA_DIR/q_agent_train_1ep_oldEps_2020-05-12_17:22:00/original_model.npy
 
 NUM_EPISODES=30
 
@@ -29,10 +30,9 @@ TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
-# DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/player_agent.py
-DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/goalkeeper_v2.py
-STATIC_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_teammate/player_agent.py
-#  STATIC_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_teammate/static_agent.py
+# DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/good_teammate.py
+DEFENSE_AGENT_FILE=$MODULE_DIR/goalkeeper/goalkeeper_v2.py
+TEAMMATE_AGENT_FILE=$MODULE_DIR/fixed_teammate/player_agent.py
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
@@ -50,7 +50,7 @@ echo "PLayer connected"
 
 sleep 2
 echo "Connect to Static player"
-$PYTHON $STATIC_AGENT_FILE  --num_episodes=$NUM_EPISODES \
+$PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$NUM_EPISODES \
 --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES &
 echo "PLayer connected"
 

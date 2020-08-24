@@ -5,7 +5,7 @@ import argparse
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
 from environement_features import discrete_features_v2, reward_functions
 from actions_levels.discrete_actions_v2 import DiscreteActionsV2
-from agents.q_agent_v4 import learning_agent
+from agents.solo_q_agents.q_agent_v4 import learning_agent
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

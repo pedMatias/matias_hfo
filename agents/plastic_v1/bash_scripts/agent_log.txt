@@ -1,0 +1,41 @@
+******************************************************************
+ librcsc 4.1.0
+ Copyright 2000 - 2007. Hidehisa Akiyama.
+ Copyright 2007 - 2011. Hidehisa Akiyama and Hiroki Shimora
+ All rights reserved.
+******************************************************************
+base_left 7: [0, 6]  see synch.
+Feature 1 Violated Feature Bounds: -21 Expected min/max: [-5.25, 57.75]
+base_left 7: [1, 0] lost turn? at [1, 0] sense=47 internal=48
+base_left 7: [1, 0] lost turn_neck? at [1, 0] sense=47 internal=48
+base_left 7: [1, 0] lost change_view? at [1, 0] sense=3 internal=4
+base_left 7: [3, 0] missed last action?(2) last decision=[1, 0]
+base_left 7: [4, 0] missed last action?(2) last decision=[1, 0]
+base_left 7: parser used several steps -- Missed an action?  sensory counts= 10  start_time= [1, 0]  end_time= [4, 0]
+base_left 7: [4, 0] lost change_view? at [4, 0] sense=5 internal=4
+base_left 7: [65, 0] lost kick? at [65, 0] sense=12 internal=13
+base_left 7: [65, 0] lost turn_neck? at [65, 0] sense=108 internal=109
+base_left 7: [65, 0] lost say? at [65, 0] sense=0 internal=1
+base_left 7: [66, 0] lost say? at [66, 0] sense=1 internal=0
+******************************************************************
+ librcsc 4.1.0
+ Copyright 2000 - 2007. Hidehisa Akiyama.
+ Copyright 2007 - 2011. Hidehisa Akiyama and Hiroki Shimora
+ All rights reserved.
+******************************************************************
+base_left 7: [0, 4]  see synch.
+Feature 1 Violated Feature Bounds: -21 Expected min/max: [-5.25, 57.75]
+base_left 7: [1, 0] lost turn? at [1, 0] sense=45 internal=46
+base_left 7: [1, 0] lost turn_neck? at [1, 0] sense=45 internal=46
+base_left 7: [1, 0] lost change_view? at [1, 0] sense=3 internal=4
+base_left 7: [3, 0] missed last action?(2) last decision=[1, 0]
+base_left 7: [4, 0] missed last action?(2) last decision=[1, 0]
+base_left 7: [5, 0] missed last action?(2) last decision=[1, 0]
+base_left 7: parser used several steps -- Missed an action?  sensory counts= 13  start_time= [1, 0]  end_time= [5, 0]
+base_left 7: [5, 0] lost change_view? at [5, 0] sense=5 internal=4
+base_left 7: [6, 0] over offset - 82   server response delayed??
+base_left 7: [6, 0] missed see synch. action without see
+base_left 7: [83, 0] lost kick? at [83, 0] sense=14 internal=15
+base_left 7: [83, 0] lost turn_neck? at [83, 0] sense=123 internal=124
+base_left 7: [83, 0] lost say? at [83, 0] sense=0 internal=1
+base_left 7: [84, 0] lost say? at [84, 0] sense=1 internal=0

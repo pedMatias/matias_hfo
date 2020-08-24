@@ -1,9 +1,7 @@
-import random
-import time
+import argparse
 
-from hfo import HFOEnvironment, HIGH_LEVEL_FEATURE_SET, IN_GAME, MOVE, SHOOT, \
-    DRIBBLE, SERVER_DOWN, QUIT, KICK_TO, REORIENT, DRIBBLE_TO, NOOP, TURN, \
-    MOVE_TO
+from hfo import HFOEnvironment, HIGH_LEVEL_FEATURE_SET, IN_GAME, SERVER_DOWN, \
+    QUIT, DRIBBLE_TO
 
 from environement_features.discrete_features import \
     DiscreteHighLevelFeatures
@@ -11,6 +9,12 @@ from settings import CONFIG_DIR
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int, default=6000)
+
+    args = parser.parse_args()
+    port = args.port
+    
     hfo = HFOEnvironment()
     hfo.connectToServer(feature_set=HIGH_LEVEL_FEATURE_SET, server_port=6000,
                         config_dir=CONFIG_DIR)

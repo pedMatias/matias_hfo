@@ -27,7 +27,7 @@ NUM_OFFENSES_NPCS=0
 TOTAL_TEAMMATES=$((NUM_OFFENSES + NUM_OFFENSES_NPCS - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
-#DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/player_agent.py
+#DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/good_teammate.py
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \

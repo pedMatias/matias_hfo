@@ -31,7 +31,7 @@ echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 # Start Model:
 MODEL_FILE=$BASE_DIR/matias_hfo/data/q_agent_train_11000ep_1op_oldEps_2020-05-03_22:45:00/agent_model.npy
 OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_1teammate_v1/train_player_w_non_static.py
-# DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/player_agent.py
+# DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/good_teammate.py
 DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/goalkeeper_v2.py
 STATIC_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_teammate/player_agent.py
 

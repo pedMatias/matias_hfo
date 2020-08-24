@@ -1,17 +1,23 @@
 import argparse
 
-from hfo import IN_GAME, GOAL
+from hfo import IN_GAME, GOAL, DRIBBLE, KICK, GO_TO_BALL, DRIBBLE_TO, NOOP
 
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
-from agents.dqn_v1.actions.simple import Actions
-from agents.dqn_v1.features.discrete_features import DiscFeatures1Teammate
+from agents.dqn_v1.actions.plastic import Actions
+from agents.dqn_v1.features.plastic_features import PlasticFeatures
 
-STARTING_POSITIONS = {"TOP LEFT": (-0.5, -0.7), "TOP RIGHT": (0.4, -0.7),
-                      "MID LEFT": (-0.5, 0.0), "MID RIGHT": (0.4, 0.0),
-                      "BOTTOM LEFT": (-0.5, 0.7), "BOTTOM RIGHT": (0.4, 0.7)}
-NEW_STARTING_POSITIONS = {"A1": (0.8, -0.5), "A2": (0.1, -0.2),
-                          "A3": (0, 0), "A4": (0, 0.2),
-                          "A5": (0.8, 0.6)}
+# NEW_STARTING_POSITIONS = {"TOP LEFT": (-0.5, -0.7), "TOP RIGHT": (0.4, -0.7),
+#                       "MID LEFT": (-0.5, 0.0), "MID RIGHT": (0.4, 0.0),
+#                       "BOTTOM LEFT": (0.4, 0.0), "BOTTOM RIGHT": (0.4, 0.0)}
+NEW_STARTING_POSITIONS = {
+                          "GOAL1": (0.4, 0.0),
+                          "GOAL2": (0.4, -0.4),
+                          "GOAL3": (0, -0.4),
+                          "GOAL4": (0, 0),
+                          "FAIL1": (0.4, -0.7),
+                          "FAIL2": (0.4, 0.7),
+                          #"FAIL2": (-0.5, 0.0)
+                        }
 STARTING_POSITIONS_NAMES = list(NEW_STARTING_POSITIONS.keys())
 
 if __name__ == '__main__':
@@ -31,11 +37,41 @@ if __name__ == '__main__':
                                         num_teammates=NUM_TEAMMATES, port=port)
     game_interface.connect_to_server()
     # Features Interface:
-    features = DiscFeatures1Teammate(num_op=NUM_OPPONENTS,
-                                     num_team=NUM_TEAMMATES)
+    features = PlasticFeatures(num_op=NUM_OPPONENTS, num_team=NUM_TEAMMATES)
     # Actions Interface:
     actions = Actions()
 
+    features.update_features(game_interface.get_state())
+
+    print("GO_TO_BALL")
+    for _ in range(50):
+        hfo_action = (DRIBBLE_TO, -0.5, -0.5)
+        z = game_interface.step(hfo_action, features.has_ball(), filter=False)
+        features.update_features(game_interface.get_state())
+    
+    print("DRIBBLE")
+    for _ in range(20):
+        hfo_action = (DRIBBLE, )
+        z = game_interface.step(hfo_action, features.has_ball(), filter=False)
+        features.update_features(game_interface.get_state())
+
+    # print("KICK")
+    # hfo_action = (KICK, 80, 0)
+    # z = game_interface.step(hfo_action, features.has_ball(), filter=False)
+    # features.update_features(game_interface.get_state())
+
+    # print("GO_TO_BALL")
+    # while not features.has_ball():
+    #     hfo_action = (GO_TO_BALL,)
+    #     z = game_interface.step(hfo_action, features.has_ball(), filter=False)
+    #     features.update_features(game_interface.get_state())
+    
+    while True:
+        hfo_action = (NOOP,)
+        z = game_interface.step(hfo_action, features.has_ball(), filter=False)
+        features.update_features(game_interface.get_state())
+    
+    """
     for ep in range(num_games):
         
         # Update features:
@@ -51,9 +87,11 @@ if __name__ == '__main__':
         status = IN_GAME
         prev_action_idx = None
         
+        
         while game_interface.in_game():
             actions.dribble_to_pos(start_pos_tuple, features, game_interface)
             if features.has_ball():
+                features.update_features(game_interface.get_observation_array())
                 actions.shoot_ball(game_interface, features)
             else:
                 actions.do_nothing(game_interface, features)
@@ -65,4 +103,5 @@ if __name__ == '__main__':
             print("[FAIL]")
         # Game Reset
         game_interface.reset()
+"""
 

@@ -4,11 +4,11 @@ import random
 
 import settings
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
-from agents.q_agent_1teammate_v1.qagent import QLearningAgent
+from agents.agent_module_dqn.deep_agent import DQNAgent
 from environement_features.reward_functions import basic_reward
 from actions_levels.action_module import DiscreteActionsModule
-from environement_features.discrete_features_1teammate_v1 import \
-    DiscreteFeatures1TeammateV1
+from agents.agent_module_dqn.features.discrete_features import \
+    DiscreteFeatures1Teammate
 
 STARTING_POSITIONS = {"TOP LEFT": (-0.5, -0.7), "TOP RIGHT": (0.4, -0.7),
                       "MID LEFT": (-0.5, 0.0), "MID RIGHT": (0.4, 0.0),
@@ -16,33 +16,27 @@ STARTING_POSITIONS = {"TOP LEFT": (-0.5, -0.7), "TOP RIGHT": (0.4, -0.7),
 
 
 class Player:
-    _game_interface_class = HFOAttackingPlayer
-    _features_class = DiscreteFeatures1TeammateV1
-    _actions_class = DiscreteActionsModule
-    _agent_class = QLearningAgent
-    
     def __init__(self, num_opponents: int, num_teammates: int):
         # Game Interface:
-        self.game_interface = self._game_interface_class(
-            num_opponents=num_opponents,
-            num_teammates=num_teammates)
+        self.game_interface = HFOAttackingPlayer(num_opponents=num_opponents,
+                                                 num_teammates=num_teammates)
         self.game_interface.connect_to_server()
         # Features Interface:
-        self.features = self._features_class(
-            num_op=num_opponents, num_team=num_teammates)
+        self.features = DiscreteFeatures1Teammate(num_op=num_opponents,
+                                                  num_team=num_teammates)
         # Actions Interface:
-        self.actions = self._actions_class()
+        self.actions = DiscreteActionsModule()
         # Agent instance:
-        self.agent = self._agent_class(
-            num_states=self.features.get_num_states(),
-            num_actions=self.actions.get_num_actions(),
-            learning_rate=0.1, discount_factor=0.9, epsilon=0.8)
+        self.agent = DQNAgent(num_features=self.features.num_features,
+                              num_actions=self.actions.get_num_actions(),
+                              learning_rate=0.1, discount_factor=0.9,
+                              epsilon=0.8)
     
     def get_reward(self, status: int) -> int:
         return basic_reward(status)
     
     def set_starting_game_conditions(self, game_interface: HFOAttackingPlayer,
-                                     features: DiscreteFeatures1TeammateV1,
+                                     features: DiscreteFeatures1Teammate,
                                      start_with_ball: bool = True,
                                      start_pos: tuple = None):
         """
@@ -82,20 +76,23 @@ class Player:
                 start_with_ball=start_with_ball)
 
             # Start learning loop
+            prev_action_idx = None
             while self.game_interface.in_game():
                 # Update environment features:
-                curr_state_id = self.features.get_state_index()
-                has_ball = self.features.has_ball()
+                features_array = self.features.get_features().copy()
     
                 # Act:
-                action_idx = self.agent.exploit_actions(curr_state_id)
-                print("ACTION:: {}".format(
-                    self.actions.map_action_to_str(action_idx, has_ball)))
+                action_idx = self.agent.exploit_actions(features_array)
+                if prev_action_idx != action_idx:
+                    print("ACTION:: {}".format(
+                        self.actions.map_action_to_str(
+                            action_idx, self.features.has_ball())))
+                prev_action_idx = action_idx
+                
                 self.actions.execute_action(
                     action_idx=action_idx,
                     features=self.features,
                     game_interface=self.game_interface)
-                
 
             # Update auxiliar variables:
             _num_wins += 1 if self.game_interface.scored_goal() else 0
@@ -106,7 +103,7 @@ class Player:
         return avr_win_rate
 
     def train(self, num_train_episodes: int, num_total_train_ep: int,
-              start_with_ball:bool = True):
+              start_with_ball: bool = True):
         """
         @param num_train_episodes: number of episodes to train in this iteration
         @param num_total_train_ep: number total of episodes to train
@@ -130,32 +127,31 @@ class Player:
             # Start learning loop
             while self.game_interface.in_game():
                 # Update environment features:
-                curr_state_id = self.features.get_state_index()
-                has_ball = self.features.has_ball()
+                features_array = self.features.get_features().copy()
             
                 # Act:
-                action_idx = self.agent.act(curr_state_id)
+                action_idx = self.agent.act(features_array)
                 status = self.actions.execute_action(
                     action_idx=action_idx,
                     features=self.features,
                     game_interface=self.game_interface)
-    
-                # Update environment features:
-                self.agent.store_ep(
-                    state_idx=curr_state_id,
+
+                # Every step we update replay memory and train main network
+                done = not self.game_interface.in_game()
+                self.agent.store_transition(
+                    curr_st=features_array,
                     action_idx=action_idx,
                     reward=self.get_reward(status),
-                    next_state_idx=self.features.get_state_index(),
-                    has_ball=has_ball,
-                    done=not self.game_interface.in_game())
+                    new_st=self.features.get_features(),
+                    done=done)
+                self.agent.train(done)
             
             # Update auxiliar variables:
             _sum_epsilons += self.agent.epsilon
             _num_wins += 1 if self.game_interface.scored_goal() else 0
             # Update Agent:
-            self.agent.learn_buffer()
-            self.agent.update_hyper_parameters(num_total_train_ep)
+            self.agent.restart(num_total_train_ep)
             # Game Reset
             self.game_interface.reset()
-        print("[TRAIN: Summary] WIN rate = {}; AVR epsilon",
-              _num_wins / num_train_episodes, _sum_epsilons / num_train_episodes)
+        print("[TRAIN: Summary] WIN rate = {}; AVR epsilon = {}".format(
+            _num_wins / num_train_episodes, _sum_epsilons / num_train_episodes))

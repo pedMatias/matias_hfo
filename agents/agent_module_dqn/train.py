@@ -4,27 +4,21 @@ import json
 import os
 import argparse
 
-from utils.aux_functions import q_table_variation
-from agents.agent_module.aux import mkdir, save_model, ServerDownError
-from agents.agent_module.player import Player
+from agents.agent_module_dqn.aux import mkdir
+from agents.agent_module_dqn.player import Player
+from agents.utils import ServerDownError
 
 
-def export_metrics(trained_eps: list, rewards: list, epsilons: list,
-                   q_variation: list, save_dir: str):
+def export_metrics(trained_eps: list, avr_win_rate: list, epsilons: list,
+                   save_dir: str):
     """ Saves metrics in Json file"""
     data = {"trained_eps": trained_eps, "epsilons": epsilons,
-            "q_table_variation": q_variation, "reward": rewards}
+            "avr_win_rate": avr_win_rate}
     file_path = os.path.join(save_dir, "metrics.json")
     with open(file_path, 'w+') as fp:
         json.dump(data, fp)
-
-
-def check_if_q_table_stayed_the_same(qtable1, qtable2):
-    q_variation = q_table_variation(qtable1, qtable2)
-    if q_variation != 0:
-        raise Exception("Q Learning changed after test", q_variation)
-
-
+    
+    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_opponents', type=int, default=0)
@@ -33,7 +27,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_test_ep', type=int, default=0)
     parser.add_argument('--num_repetitions', type=int, default=0)
     parser.add_argument('--retrain', type=bool, default=False)
-    parser.add_argument('--starts_with_ball', type=bool, default=False)
+    parser.add_argument('--starts_with_ball', type=bool, default=True)
     parser.add_argument('--load_file', type=str, default=None)
     parser.add_argument('--save_dir', type=str, default=None)
     # Parse Arguments:
@@ -51,7 +45,7 @@ if __name__ == '__main__':
     
     # IF retrain mode, load previous model
     if args.retrain and args.load_file:
-        player.agent.load_q_table(args.load_file)
+        player.agent.load_model(args.load_file)
    
     # Directory
     save_dir = args.save_dir or mkdir(
@@ -63,44 +57,36 @@ if __name__ == '__main__':
                                       num_op, num_op, starts_with_ball))
     
     # Test one first time without previous train:
-    av_reward = player.test(num_episodes=num_test_ep,
-                            start_with_ball=starts_with_ball)
+    # av_reward = player.test(num_episodes=num_test_ep,
+    #                         start_with_ball=starts_with_ball)
     # Save metrics structures
     trained_eps_list = [0]
     avr_epsilons_list = [player.agent.epsilon]
-    avr_rewards_list = [av_reward]
-    qlearning_variation_list = [0]
+    avr_win_rate = [0]  # av_reward]
     
     # Train - test iterations:
     for i in range(num_repetitions):
         print(">>>> {}/{} <<<<".format(i, num_repetitions))
         try:
-            prev_q_table = player.agent.q_table.copy()
             # Train:
             player.train(num_train_episodes=num_train_ep,
                          num_total_train_ep=num_train_ep * num_repetitions,
                          start_with_ball=starts_with_ball)
-            # Update train metrics
-            q_table_after_train = player.agent.q_table.copy()
             # Test:
             av_reward = player.test(num_episodes=num_test_ep,
                                     start_with_ball=starts_with_ball)
         except ServerDownError as e:
             print("\n!!! Server is Down !!!")
+            pass
+            av_reward = 0
         sum_trained_eps = trained_eps_list[-1] + num_train_ep
         # Calc metrics:
-        q_var = round(q_table_variation(prev_q_table, q_table_after_train), 4)
-        print("<<TRAIN>> Q variation ", q_var)
-        # Save metrics:
         trained_eps_list.append(sum_trained_eps)
         avr_epsilons_list.append(player.agent.epsilon)
-        avr_rewards_list.append(av_reward)
-        qlearning_variation_list.append(q_var)
+        avr_win_rate.append(av_reward)
     print("\n\n!!!!!!!!! AGENT FINISHED !!!!!!!!!!!!\n\n")
     # Save and export metrics:
-    save_model(q_table=player.agent.q_table, file_name="agent_model",
-               directory=save_dir)
-    export_metrics(trained_eps=trained_eps_list, rewards=avr_rewards_list,
-                   epsilons=avr_epsilons_list,
-                   q_variation=qlearning_variation_list, save_dir=save_dir)
+    player.agent.save_model(file_name=save_dir + "/agent_model")
+    export_metrics(trained_eps=trained_eps_list, avr_win_rate=avr_win_rate,
+                   epsilons=avr_epsilons_list, save_dir=save_dir)
     print("\n\n!!!!!!!!! AGENT EXIT !!!!!!!!!!!!\n\n")
