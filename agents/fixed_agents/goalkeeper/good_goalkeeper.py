@@ -13,14 +13,14 @@ from agents.base.hfo_goalkeeper_player import HFOGoalkeeperPlayer
 from environement_features.base import BaseHighLevelState
 import settings
 
-ACTIONS = {"MOVE_DOWN": (MOVE_TO, -0.7, -0.15),
-           "MOVE_UP": (MOVE_TO, -0.7, 0.15),
-           "MOVE_MIDDLE": (MOVE_TO, -0.7, 0),
+ACTIONS = {"MOVE_DOWN": (MOVE_TO, -0.75, -0.175),
+           "MOVE_UP": (MOVE_TO, -0.75, 0.175),
+           "MOVE_MIDDLE": (MOVE_TO, -0.65, 0),
            "INTERCEPT": (INTERCEPT,),
            "NOOP": (NOOP,)}
 
 GOAL_REGION = {"x": [-1, -0.5],
-               "y": [-0.3, 0.3]}
+               "y": [-0.4, 0.4]}
 
 
 def ball_in_goal_region(features: BaseHighLevelState) -> bool:
@@ -36,14 +36,16 @@ if __name__ == '__main__':
     parser.add_argument('--num_episodes', type=int, default=500)
     parser.add_argument('--num_offenses', type=int, default=1)
     parser.add_argument('--num_defenses', type=int, default=0)
+    parser.add_argument('--port', type=int, default=6000)
     
     args = parser.parse_args()
     num_episodes = args.num_episodes
     num_team = args.num_defenses
     num_op = args.num_offenses
+    port = args.port
     
     # Initialize connection with the HFO server
-    hfo_interface = HFOGoalkeeperPlayer()
+    hfo_interface = HFOGoalkeeperPlayer(port=port)
     hfo_interface.connect_to_server()
     
     # Get number of features and actions

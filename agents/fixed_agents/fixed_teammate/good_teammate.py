@@ -28,15 +28,17 @@ if __name__ == '__main__':
     parser.add_argument('--num_teammates', type=int, default=0)
     parser.add_argument('--wait_for_teammate', type=bool, default=True)
     parser.add_argument('--num_episodes', type=int, default=500)
+    parser.add_argument('--port', type=int, default=6000)
     
     args = parser.parse_args()
     num_team = args.num_teammates
     num_op = args.num_opponents
     wait_for_teammate = args.wait_for_teammate
     num_episodes = args.num_episodes
+    port = args.port
     
     # Initialize connection with the HFO server
-    hfo_interface = HFOAttackingPlayer(num_opponents=num_op,
+    hfo_interface = HFOAttackingPlayer(num_opponents=num_op, port=port,
                                        num_teammates=num_team)
     hfo_interface.connect_to_server()
     uniform_id = hfo_interface.hfo.getUnum()
@@ -62,8 +64,9 @@ if __name__ == '__main__':
                     pass
                 status, observation = hfo_interface.step(NOOP, False)
                 aux_counter += 1
-                if aux_counter % 50 == 0:
-                    print("Still waiting")
+                if aux_counter == 50:
+                    # print("Still waiting. Will start playing")
+                    break
         
         # Update environment features:
         features_manager.update_features(observation)

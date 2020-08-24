@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 # encoding utf-8
-import numpy as np
-import math
 import argparse
 
 from hfo import MOVE_TO, NOOP
@@ -20,14 +18,16 @@ if __name__ == '__main__':
     parser.add_argument('--num_episodes', type=int, default=500)
     parser.add_argument('--num_offenses', type=int, default=1)
     parser.add_argument('--num_defenses', type=int, default=0)
+    parser.add_argument('--port', type=int, default=6000)
     
     args = parser.parse_args()
     num_team = args.num_defenses
     num_op = args.num_offenses
     num_episodes = args.num_episodes
+    port = args.port
     
     # Initialize connection with the HFO server
-    hfo_interface = HFOGoalkeeperPlayer()
+    hfo_interface = HFOGoalkeeperPlayer(port=port)
     hfo_interface.connect_to_server()
     
     # Get number of features and actions
