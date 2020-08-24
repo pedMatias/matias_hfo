@@ -1,0 +1,1 @@
+{"number_episodes": 8000, "num_op": 1, "op_type": "helios", "num_team": 1, "team_type": "helios", "feature_weight": 1, "starts_with_ball": false, "starts_fixed_position": false, "exploration_rate": 0.7002090176171991}

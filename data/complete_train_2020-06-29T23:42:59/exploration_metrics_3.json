@@ -1,0 +1,1 @@
+{"number_episodes": 3000, "num_op": 1, "op_type": "good_goalkeeper", "num_team": 1, "team_type": "static_teammate", "feature_weight": 1, "starts_with_ball": false, "starts_fixed_position": true, "exploration_rate": 0.5990220048899756}
