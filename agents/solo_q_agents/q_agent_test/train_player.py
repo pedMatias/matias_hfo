@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 # encoding utf-8
-import copy
 import json
 import os
 import random
 
 import argparse
 
-from hfo import IN_GAME, OUT_OF_TIME, SERVER_DOWN, GO_TO_BALL
+from hfo import SERVER_DOWN, GO_TO_BALL
 
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
 from environement_features.discrete_features_simpler import DiscreteFeatures
 from environement_features.reward_functions import basic_reward
 from actions_levels.discrete_actions_v5 import DiscreteActionsV5
-from matias_hfo import settings
 from utils.aux_functions import q_table_variation
-from agents.q_agent_test.aux import mkdir, save_model
-from agents.q_agent_test.qagent import QLearningAgentTest
+from agents.solo_q_agents.q_agent_test import mkdir, save_model
+from agents.solo_q_agents.q_agent_test import QLearningAgentTest
 
 ORIGIN_POSITIONS = {"TOP LEFT": (-0.5, -0.7), "TOP RIGHT": (0.4, -0.7),
                     "MID LEFT": (-0.5, 0.0), "MID RIGHT": (0.4, 0.0),

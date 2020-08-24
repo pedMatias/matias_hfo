@@ -3,8 +3,8 @@ import random
 from hfo import MOVE_TO, DRIBBLE_TO, KICK_TO, NOOP, SHOOT, PASS
 
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
-from environement_features.discrete_features_1teammate_v1 import \
-    DiscreteFeatures1TeammateV1
+from agents.agent_module_simple_q.features.discrete_features import \
+    DiscreteFeatures1Teammate
 
 
 class DiscreteActionsModule:
@@ -34,7 +34,7 @@ class DiscreteActionsModule:
         else:
             return self.action_w_out_ball[action_idx]
     
-    def dribble_to_pos(self, pos: tuple, features: DiscreteFeatures1TeammateV1,
+    def dribble_to_pos(self, pos: tuple, features: DiscreteFeatures1Teammate,
                        game_interface: HFOAttackingPlayer):
         """ The agent keeps dribbling until reach the position expected """
         curr_pos = features.get_pos_tuple(round_ndigits=1)
@@ -46,7 +46,7 @@ class DiscreteActionsModule:
             features.update_features(observation)
             curr_pos = features.get_pos_tuple(round_ndigits=1)
     
-    def move_to_pos(self, pos: tuple, features: DiscreteFeatures1TeammateV1,
+    def move_to_pos(self, pos: tuple, features: DiscreteFeatures1Teammate,
                     game_interface: HFOAttackingPlayer):
         """ The agent keeps moving until reach the position expected """
         curr_pos = features.get_pos_tuple(round_ndigits=1)
@@ -58,7 +58,7 @@ class DiscreteActionsModule:
             features.update_features(observation)
             curr_pos = features.get_pos_tuple(round_ndigits=1)
     
-    def kick_to_pos(self, pos: tuple, features: DiscreteFeatures1TeammateV1,
+    def kick_to_pos(self, pos: tuple, features: DiscreteFeatures1Teammate,
                     game_interface: HFOAttackingPlayer):
         """ The agent kicks to position expected """
         hfo_action = (KICK_TO, pos[0], pos[1], 2)
@@ -68,7 +68,7 @@ class DiscreteActionsModule:
         features.update_features(observation)
 
     def shoot_ball(self, game_interface: HFOAttackingPlayer,
-                   features: DiscreteFeatures1TeammateV1):
+                   features: DiscreteFeatures1Teammate):
         """ Tries to shoot, if it fail, kicks to goal randomly """
         attempts = 0
         while game_interface.in_game() and features.has_ball():
@@ -76,7 +76,7 @@ class DiscreteActionsModule:
                 break
             elif attempts == 3:
                 # Failed to kick four times
-                print("Failed to SHOOT 3 times. WILL KICK")
+                # print("Failed to SHOOT 3 times. WILL KICK")
                 y = random.choice([0.17, 0, -0.17])
                 hfo_action = (KICK_TO, 0.9, y, 2)
             else:
@@ -88,7 +88,7 @@ class DiscreteActionsModule:
             game_interface.get_observation_array()
     
     def pass_ball(self, game_interface: HFOAttackingPlayer,
-                  features: DiscreteFeatures1TeammateV1):
+                  features: DiscreteFeatures1Teammate):
         """ Tries to use the PASS action, if it fails, Kicks in the direction
         of the teammate"""
         attempts = 0
@@ -97,7 +97,7 @@ class DiscreteActionsModule:
                 break
             elif attempts == 2:
                 # Failed to pass 2 times
-                print("Failed to PASS two times. WILL KICK")
+                # print("Failed to PASS two times. WILL KICK")
                 y = random.choice([0.17, 0, -0.17])
                 hfo_action = (KICK_TO, 0.9, y, 2)
             else:
@@ -109,7 +109,7 @@ class DiscreteActionsModule:
             game_interface.get_observation_array()
 
     def move_agent(self, action_name, game_interface: HFOAttackingPlayer,
-                   features: DiscreteFeatures1TeammateV1):
+                   features: DiscreteFeatures1Teammate):
         """ Agent Moves/Dribbles in a specific direction """
         # print("move_agent!")
         if "SHORT" in action_name:
@@ -147,14 +147,14 @@ class DiscreteActionsModule:
             game_interface.get_observation_array()
 
     def do_nothing(self, game_interface: HFOAttackingPlayer,
-                   features: DiscreteFeatures1TeammateV1):
+                   features: DiscreteFeatures1Teammate):
         action = (NOOP,)
         status, observation = game_interface.step(action, features.has_ball())
         return status, observation
 
     def execute_action(self, action_idx: int,
                        game_interface: HFOAttackingPlayer,
-                       features: DiscreteFeatures1TeammateV1):
+                       features: DiscreteFeatures1Teammate):
         """ Receiving the idx of the action, the agent executes it and
         returns the game status """
         action_name = self.map_action_to_str(action_idx, features.has_ball())

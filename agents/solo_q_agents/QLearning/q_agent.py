@@ -5,7 +5,7 @@ from hfo import HFOEnvironment, HIGH_LEVEL_FEATURE_SET, IN_GAME, MOVE, SHOOT, DR
     NOOP, SERVER_DOWN, QUIT
 
 from environement_features.discrete_features import DiscreteHighLevelFeatures
-from agents.QLearning.qlearner import QLearner
+from agents.solo_q_agents.QLearning.qlearner import QLearner
 from agents.deep_q_learning.utils import plotLearning
 
 

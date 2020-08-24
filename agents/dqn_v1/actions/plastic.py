@@ -12,8 +12,9 @@ class Actions:
     """ This class uniforms Move and Dribble actions. It allows agent to only
     have to select between 10 actions, instead of 18 actions
     """
-    action_w_ball = ["KICK_TO_GOAL", "DRIBBLE_UP", "DRIBBLE_DOWN",
+    action_without_ball = ["NOOP", "DRIBBLE_UP", "DRIBBLE_DOWN",
                      "DRIBBLE_LEFT", "DRIBBLE_RIGHT"]
+    action_w_ball = ["NOOP", "SHOOT", "SHORT_DRIBBLE", "LONG_DRIBBLE"]
     shoot_possible_coord = [np.array([0.83, -0.17]), np.array([0.83, -0.09]),
                             np.array([0.83, 0]), np.array([0.83, 0.09]),
                             np.array([0.83, 0.17])]

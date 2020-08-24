@@ -23,35 +23,46 @@ STARTING_POSITIONS_NAMES = list(NEW_STARTING_POSITIONS.keys())
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=6000)
-    parser.add_argument('--num_games', type=int, default=1)
+    parser.add_argument('--num_episodes', type=int, default=0)
+    parser.add_argument('--num_opponents', type=int, default=0)
+    parser.add_argument('--num_teammates', type=int, default=0)
 
+    # Parse Arguments:
     args = parser.parse_args()
     port = args.port
-    num_games = args.num_games
-    
-    NUM_TEAMMATES = 1
-    NUM_OPPONENTS = 1
+    num_team = args.num_teammates
+    num_op = args.num_opponents
+    num_episodes = args.num_episodes
     
     # Game Interface:
-    game_interface = HFOAttackingPlayer(num_opponents=NUM_OPPONENTS,
-                                        num_teammates=NUM_TEAMMATES, port=port)
+    game_interface = HFOAttackingPlayer(num_opponents=num_op,
+                                        num_teammates=num_team, port=port)
     game_interface.connect_to_server()
     # Features Interface:
-    features = PlasticFeatures(num_op=NUM_OPPONENTS, num_team=NUM_TEAMMATES)
+    features = PlasticFeatures(num_op=num_op, num_team=num_team)
     # Actions Interface:
     actions = Actions()
 
     features.update_features(game_interface.get_state())
 
-    print("GO_TO_BALL")
-    for _ in range(50):
-        hfo_action = (DRIBBLE_TO, -0.5, -0.5)
+    # print("GO_TO_BALL")
+    # for _ in range(50):
+    #     hfo_action = (DRIBBLE_TO, -0.5, -0.5)
+    #     z = game_interface.step(hfo_action, features.has_ball(), filter=False)
+    #     features.update_features(game_interface.get_state())
+    
+    while not features.has_ball():
+        hfo_action = (GO_TO_BALL,)
         z = game_interface.step(hfo_action, features.has_ball(), filter=False)
         features.update_features(game_interface.get_state())
     
+    
     print("DRIBBLE")
-    for _ in range(20):
-        hfo_action = (DRIBBLE, )
+    for _ in range(50):
+        if _ % 2 == 0:
+            hfo_action = (DRIBBLE, )
+        else:
+            hfo_action = (NOOP,)
         z = game_interface.step(hfo_action, features.has_ball(), filter=False)
         features.update_features(game_interface.get_state())
 

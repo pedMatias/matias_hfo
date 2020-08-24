@@ -4,9 +4,9 @@ import json
 import os
 import argparse
 
-from agents.agent_module_dqn.aux import mkdir
-from agents.agent_module_dqn.player import Player
 from agents.utils import ServerDownError
+from agents.agent_module_simple_q.aux import mkdir
+from agents.agent_module_simple_q.player import Player
 
 
 def export_metrics(trained_eps: list, avr_win_rate: list, epsilons: list,
@@ -57,8 +57,8 @@ if __name__ == '__main__':
                                       num_op, num_op, starts_with_ball))
     
     # Test one first time without previous train:
-    # av_reward = player.test(num_episodes=num_test_ep,
-    #                         start_with_ball=starts_with_ball)
+    av_reward = player.test(num_episodes=num_test_ep, training=True,
+                            start_with_ball=starts_with_ball)
     # Save metrics structures
     trained_eps_list = [0]
     avr_epsilons_list = [player.agent.epsilon]
@@ -73,7 +73,7 @@ if __name__ == '__main__':
                          num_total_train_ep=num_train_ep * num_repetitions,
                          start_with_ball=starts_with_ball)
             # Test:
-            av_reward = player.test(num_episodes=num_test_ep,
+            av_reward = player.test(num_episodes=num_test_ep, training=True,
                                     start_with_ball=starts_with_ball)
         except ServerDownError as e:
             print("\n!!! Server is Down !!!")

@@ -26,8 +26,8 @@ def export_metrics(trained_eps: list, avr_win_rate: list, epsilons: list,
 def train_agent_online(player: Player, num_train_ep, num_test_ep,
                        starts_with_ball, num_repetitions, save_dir):
     # Test one first time without previous train:
-    av_reward = player.test(num_episodes=num_test_ep,
-                            start_with_ball=starts_with_ball)
+    # av_reward = player.test(num_episodes=num_test_ep,
+    #                         start_with_ball=starts_with_ball)
     # Save metrics structures
     trained_eps_list = [0]
     avr_epsilons_list = [player.agent.epsilon]

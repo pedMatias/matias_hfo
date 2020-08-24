@@ -53,22 +53,16 @@ def test(num_episodes: int, game_interface: HFOAttackingPlayer,
 
             # Act:
             debug_counter += 1
-            action_idx = agent.exploit_actions(curr_state_id)
-            hfo_action_params, num_rep = \
-                actions.map_action_idx_to_hfo_action(
-                    agent_pos=features.get_pos_tuple(), has_ball=has_ball,
-                    action_idx=action_idx, teammate_pos=features.teammate_coord)
-            # action_name = actions.map_action_to_str(action_idx, has_ball)
-            # print("Agent playing {} for {}".format(action_name, num_rep))
-            
+            action_idx = agent.act(curr_state_id)
+            action_name = actions.map_action_to_str(action_idx, has_ball)
+            print("Agent playing {}".format(action_name))
+
             # Step:
-            status, observation = execute_action(
-                action_params=hfo_action_params, repetitions=num_rep,
-                has_ball=has_ball, game_interface=game_interface)
+            status = execute_action(action_name=action_name, features=features,
+                                    game_interface=game_interface)
             
             # update features:
             reward = reward_funct(status)
-            features.update_features(observation)
         num_goals += 1 if reward == 1 else 0
         
         if status == OUT_OF_TIME:
@@ -117,26 +111,20 @@ def train(num_train_episodes: int, num_total_train_ep: int,
             # Update environment features:
             curr_state_id = features.get_state_index()
             has_ball = features.has_ball()
-            
+
             # Act:
             debug_counter += 1
             action_idx = agent.act(curr_state_id)
-            hfo_action_params, num_rep =\
-                actions.map_action_idx_to_hfo_action(
-                    agent_pos=features.get_pos_tuple(), has_ball=has_ball,
-                    action_idx=action_idx, teammate_pos=features.teammate_coord)
-            # action_name = actions.map_action_to_str(action_idx, has_ball)
+            action_name = actions.map_action_to_str(action_idx, has_ball)
             # print("Agent playing {} for {}".format(action_name, num_rep))
 
             # Step:
-            status, observation = execute_action(
-                action_params=hfo_action_params, repetitions=num_rep,
-                has_ball=has_ball, game_interface=game_interface)
+            status = execute_action(action_name=action_name, features=features,
+                                    game_interface=game_interface)
             
             # Update environment features:
             reward = reward_funct(status)
             sum_score += reward
-            features.update_features(observation)
             new_state_id = features.get_state_index()
             agent.store_ep(state_idx=curr_state_id, action_idx=action_idx,
                            reward=reward, next_state_idx=new_state_id,
@@ -192,7 +180,8 @@ if __name__ == '__main__':
     num_repetitions = args.num_repetitions
     num_episodes = (num_train_ep + num_test_ep) * num_repetitions
     # Directory
-    save_dir = args.save_dir or mkdir(num_episodes, num_op, extra_note="oldEps")
+    save_dir = args.save_dir or mkdir(num_episodes, num_op,
+                                      extra_note="static_teammate")
     
     # Initialize connection with the HFO server
     hfo_interface = HFOAttackingPlayer(num_opponents=num_op,

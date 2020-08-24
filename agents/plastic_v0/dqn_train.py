@@ -5,8 +5,8 @@ import os
 import argparse
 
 import numpy as np
-from agents.dqn_v1.aux import mkdir
-from agents.dqn_v1.dqn_player import Player
+from agents.plastic_v0.aux import mkdir
+from agents.plastic_v0.dqn_player import Player
 from agents.utils import ServerDownError
 
 
@@ -75,13 +75,6 @@ def train_agent_online(player: Player, num_train_ep, num_test_ep,
                    learning_rate=player.agent.learning_rate,
                    discount_factor=player.agent.discount_factor,
                    save_dir=save_dir)
-
-
-def train_agent_offline(player: Player, game_buffer_file: str):
-    buffer = np.load(game_buffer_file, allow_pickle=True)
-    print("BUFFER LEN ", len(buffer))
-    print(buffer[0])
-    player.train_offline(game_buffer=buffer)
     
 
 if __name__ == '__main__':
@@ -95,8 +88,6 @@ if __name__ == '__main__':
     parser.add_argument('--starts_with_ball', type=bool, default=True)
     parser.add_argument('--load_file', type=str, default=None)
     parser.add_argument('--save_dir', type=str, default=None)
-    parser.add_argument('--train_online', type=bool, default=True)
-    parser.add_argument('--batch_train_file', type=str, default=None)
     parser.add_argument('--port', type=int, default=6000)
     
     # Parse Arguments:
@@ -108,34 +99,36 @@ if __name__ == '__main__':
     num_repetitions = args.num_repetitions
     num_episodes = (num_train_ep + num_test_ep) * num_repetitions
     starts_with_ball = args.starts_with_ball
-    train_online = args.train_online
-    batch_train_file = args.batch_train_file
     port = args.port
 
     # Start Player:
-    player = Player(num_teammates=num_team, num_opponents=num_op, port=port,
-                    online=train_online)
+    player = Player(num_teammates=num_team, num_opponents=num_op, port=port)
     
     # IF retrain mode, load previous model
     if args.retrain and args.load_file:
+        print("[RETRAIN] Loading Model! ")
         player.agent.load_model(args.load_file)
+        dir_base_name = "retrain" if args.retrain else "new"
+    else:
+        print("[TRAIN] New Model!")
+        dir_base_name = "new"
    
     # Directory
-    save_dir = args.save_dir or \
-               mkdir(name="dqn", num_episodes=num_episodes, num_op=num_op,
-                     extra_note="retrain" if args.retrain else "new")
-
-    print("\n[{} - PLAYER] train_mode={}; num_opponents={}; num_teammates={}; "
+    save_dir = args.save_dir or mkdir(name="dqn", num_episodes=num_episodes,
+                                      num_op=num_op, extra_note=dir_base_name)
+    
+    # Save original model:
+    if args.retrain:
+        print("[RETRAIN] Save original model")
+        player.agent.save_model(file_name=save_dir + "/original_agent_model")
+        
+    print("\n[{} - PLAYER] num_opponents={}; num_teammates={}; "
           "start_with_ball={}".format(
             "RETRAIN" if args.retrain else "TRAIN",
-            "Online" if train_online else "Offline",
             num_op, num_op, starts_with_ball))
     
-    if train_online:
-        train_agent_online(player, num_train_ep, num_test_ep,
-                           starts_with_ball, num_repetitions, save_dir)
-    else:
-        train_agent_offline(player, batch_train_file)
+    train_agent_online(player, num_train_ep, num_test_ep,
+                       starts_with_ball, num_repetitions, save_dir)
     
     print("\n\n!!!!!!!!! AGENT FINISHED !!!!!!!!!!!!\n\n")
     player.agent.save_model(file_name=save_dir + "/agent_model")

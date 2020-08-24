@@ -18,6 +18,8 @@ except ImportError:
   print('Failed to import hfo. To install hfo, in the HFO directory'\
     ' run: \"pip install .\"')
   exit()
+  
+import settings
 
 GOAL_POS_X = 0.9
 GOAL_POS_Y = 0.0
@@ -259,12 +261,12 @@ def main():
   hfo_env = hfo.HFOEnvironment()
   if args.record:
     hfo_env.connectToServer(hfo.HIGH_LEVEL_FEATURE_SET,
-                            'bin/teams/base/config/formations-dt', args.port,
+                            settings.CONFIG_DIR, args.port,
                             'localhost', 'base_right', play_goalie=False,
                             record_dir=args.rdir)
   else:
     hfo_env.connectToServer(hfo.HIGH_LEVEL_FEATURE_SET,
-                            'bin/teams/base/config/formations-dt', args.port,
+                            settings.CONFIG_DIR, args.port,
                             'localhost', 'base_right', play_goalie=False)
   numTeammates = hfo_env.getNumTeammates()
   numOpponents = hfo_env.getNumOpponents()
@@ -326,8 +328,9 @@ def main():
       exit()
 
     # Check the outcome of the episode
-    print("Episode {0:d} ended with {1:s}".format(episode,
-                                                  hfo_env.statusToString(status)))
+    # print("Episode {0:d} ended with {1:s}".format(episode,
+    #                                              hfo_env.statusToString(
+    #                                              status)))
 
 if __name__ == '__main__':
   main()

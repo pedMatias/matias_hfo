@@ -59,6 +59,9 @@ class PlasticFeatures(BaseHighLevelState):
 
     def get_agent_coord(self) -> np.ndarray:
         return np.array([self.agent.x_pos, self.agent.y_pos])
+    
+    def get_teammate_coord(self) -> np.ndarray:
+        return np.array([self.teammates[0].x_pos, self.teammates[0].y_pos])
 
     def get_nearest_teammate_coord(self) -> np.ndarray:
         a_coord = self.get_agent_coord()

@@ -29,7 +29,7 @@ TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
-# GOALIE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/player_agent.py
+# GOALIE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/good_teammate.py
 GOALIE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/goalkeeper_v2.py
 DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/defense/hand_coded_defense_agent.py
 STATIC_AGENT_FILE=$MODULE_DIR/fixed_agents/fixed_teammate/player_agent.py

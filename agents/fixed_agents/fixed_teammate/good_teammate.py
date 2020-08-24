@@ -56,6 +56,7 @@ if __name__ == '__main__':
         if wait_for_teammate:
             while hfo_interface.in_game():
                 msg = hfo_interface.hfo.hear()
+
                 if msg == settings.PLAYER_READY_MSG:
                     break
                 else:

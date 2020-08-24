@@ -1,9 +1,10 @@
 import numpy as np
 import random
 from collections import deque
+from typing import List
 
 from keras.models import Sequential, load_model
-from keras.layers import Dense, LeakyReLU
+from keras.layers import Dense
 from keras.optimizers import Adam
 import tensorflow as tf
 
@@ -21,6 +22,21 @@ UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
 random.seed(2)
 np.random.seed(2)
 tf.set_random_seed(2)
+
+
+class Transition:
+    def __init__(self, obs: np.ndarray, act: int, reward: int,
+                 new_obs: np.ndarray, done: bool, correct_action: bool):
+        self.obs = obs
+        self.act = act
+        self.reward = reward
+        self.new_obs = new_obs
+        self.done = done
+        # Auxiliar var:
+        self.correct_action = correct_action
+    
+    def to_tuple(self) -> tuple:
+        return tuple([self.obs, self.act, self.reward, self.new_obs, self.done])
 
 
 # Agent class
@@ -68,17 +84,49 @@ class DQNAgent(Agent):
         transition = np.array([curr_st, action_idx, reward, new_st, done])
         self.replay_memory.append(transition)
     
-    def store_episode(self, transitions: list, reward: int = None):
+    def store_episode(self, transitions: List[Transition]):
         """ Adds step's data to a memory replay array
         (observation space, action, reward, new observation space, done) """
-        if len(transitions) == 0:
-            return
-        else:
-            if reward is not None:
-                transitions[-1][2] = reward  # final reward
-            transitions[-1][4] = True  # done
-            for obs, a, r, new_obs, d in transitions:
-                self.replay_memory.append((obs, a, r, new_obs, d))
+        if len(transitions) > 0:
+            for transition in transitions:
+                self.replay_memory.append(transition.to_tuple())
+    
+    def fit_batch(self, minibatch: List[Transition], verbose: int = 0) -> list:
+        # Get current states from minibatch, then query NN model for Q values
+        current_states = np.array([transition.obs for transition in minibatch])
+        current_qs_list = self.model.predict(current_states)
+        # Get future states from minibatch, then query NN model for Q values
+        new_states = np.array([transition.new_obs for transition in minibatch])
+        future_qs_list = self.target_model.predict(new_states)
+        
+        # Now we need to enumerate our batches
+        X = []
+        y = []
+        for idx, transition in enumerate(minibatch):
+            # If not a terminal state, get new q from future states, else 0
+            # almost like with Q Learning, but we use just part of equation here
+            if not transition.done:
+                max_future_q = max(future_qs_list[idx])
+                target_td = transition.reward + (self.discount_factor *
+                                                 max_future_q)
+                td = target_td
+            else:
+                td = transition.reward
+        
+            # Update Q value for given state
+            current_qs = current_qs_list[idx]
+            current_qs[transition.act] = td
+            # current_qs[action] = current_qs[action] + self.learning_rate * td
+        
+            X.append(transition.obs)
+            y.append(current_qs)
+    
+        # Fit on all samples as one batch, log only on terminal state
+        epochs = len(X) // MINIBATCH_SIZE
+        history = self.model.fit(np.array(X), np.array(y), epochs=epochs,
+                                 shuffle=True, verbose=verbose,
+                                 batch_size=MINIBATCH_SIZE)
+        return history.history["loss"]
 
     def train(self, terminal_state: bool):
         """ Trains main network every step during episode """
@@ -89,39 +137,7 @@ class DQNAgent(Agent):
         # Get a minibatch of random samples from memory replay table
         minibatch = random.sample(self.replay_memory, MINIBATCH_SIZE)
 
-        # Get current states from minibatch, then query NN model for Q values
-        current_states = np.array([transition[0] for transition in minibatch])
-        current_qs_list = self.model.predict(current_states)
-        # Get future states from minibatch, then query NN model for Q values
-        new_states = np.array([transition[3] for transition in minibatch])
-        future_qs_list = self.target_model.predict(new_states)
-
-        X = []
-        y = []
-
-        # Now we need to enumerate our batches
-        for idx, (curr_st, action, r, new_st, done) in enumerate(minibatch):
-            # If not a terminal state, get new q from future states, else 0
-            # almost like with Q Learning, but we use just part of equation here
-            if not done:
-                max_future_q = max(future_qs_list[idx])
-                target_td = r + (self.discount_factor * max_future_q)
-                td = target_td
-                # td = target_td - current_qs_list[idx][action]
-            else:
-                td = r
-                # td = r - current_qs_list[idx][action]
-
-            # Update Q value for given state
-            current_qs = current_qs_list[idx]
-            current_qs[action] = td
-            # current_qs[action] = current_qs[action] + self.learning_rate * td
-            
-            X.append(curr_st)
-            y.append(current_qs)
-
-        # Fit on all samples as one batch, log only on terminal state
-        self.model.fit(np.array(X), np.array(y), epochs=1, verbose=0)
+        self.fit_batch(minibatch)
 
         # Update target network counter every episode
         if terminal_state:

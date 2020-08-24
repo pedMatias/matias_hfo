@@ -12,8 +12,8 @@ echo $PYTHONPATH
 
 NUM_EPISODES=10
 
-NUM_DEFENSES=1
-NUM_DEFENSES_NPCS=0
+NUM_DEFENSES=0
+NUM_DEFENSES_NPCS=2
 TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
 TOTAL_OPPONENTS=$TOTAL_DEFENSES
 echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
@@ -25,10 +25,11 @@ TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
 # Players files:
-FIXED_AGENT_FILE=$PROJECT_DIR/agents/fixed_teammate/player_agent.py
-STATIC_AGENT_FILE=$PROJECT_DIR/agents/fixed_teammate/static_agent.py
+AGENTS_DIR=$PROJECT_DIR/agents/fixed_agents
+FIXED_AGENT_FILE=$AGENTS_DIR/fixed_teammate/helios_teammate.py
+STATIC_AGENT_FILE=$AGENTS_DIR/fixed_teammate/static_teammate.py
 
-DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/goalkeeper_v2.py
+DEFENSE_AGENT_FILE=$AGENTS_DIR/goalkeeper/good_goalkeeper.py
 
 echo $HFO
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
@@ -49,10 +50,10 @@ $PYTHON $FIXED_AGENT_FILE  --num_episodes=$NUM_EPISODES \
 --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES \
 --wait_for_teammate=$false &
 
-sleep 2
-echo "Connect Defense Player"
-$PYTHON $DEFENSE_AGENT_FILE  --num_episodes=$NUM_EPISODES \
---num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+#sleep 2
+#echo "Connect Defense Player"
+#$PYTHON $DEFENSE_AGENT_FILE  --num_episodes=$NUM_EPISODES \
+#--num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
 
 # .py &
 # The magic line

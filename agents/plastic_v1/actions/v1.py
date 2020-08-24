@@ -11,11 +11,11 @@ from agents.utils import get_angle, get_opposite_vector
 
 class Actions:
     # ACTIONS:
-    ACTIONS_WITHOUT_BALL_DEFAULT = ["NOOP", "MOVE_TO_BALL", "MOVE_TO_GOAL",
-                                    "MOVE_TO_NEAR_TEAM", "MOVE_FROM_NEAR_TEAM",
-                                    "MOVE_TO_NEAR_OP", "MOVE_FROM_NEAR_OP"]
-    ACTIONS_WITH_BALL_DEFAULT = ["SHOOT", "SHORT_DRIBBLE", "LONG_DRIBBLE"]
-    NUM_ACTIONS = 7
+    ACTIONS_WITHOUT_BALL = ["STAY", "MOVE_TO_BALL", "MOVE_TO_GOAL",
+                            "MOVE_TO_NEAR_TEAM", "MOVE_FROM_NEAR_TEAM",
+                            "MOVE_TO_NEAR_OP", "MOVE_FROM_NEAR_OP"]
+    # 7
+    ACTIONS_WITH_BALL = ["SHOOT", "SHORT_DRIBBLE", "LONG_DRIBBLE"]
     
     NUM_SHORT_REP = 5
     NUM_LONG_REP = 20
@@ -29,25 +29,20 @@ class Actions:
         self.num_teammates = num_team
         self.features = features
         self.game_interface = game_interface
-
-        self.num_actions = self.NUM_ACTIONS
         
-        # Actions with ball:
-        self.action_with_ball = self.ACTIONS_WITH_BALL_DEFAULT
-        for idx in range(num_team):
-            self.action_with_ball.append("PASS" + str(idx))
-        while len(self.action_with_ball) < 7:
-            self.action_with_ball.append("NOOP")
-        
+        self.actions = []
         # Actions without ball:
-        self.action_without_ball = self.ACTIONS_WITHOUT_BALL_DEFAULT
-        
-        # Check sizes:
-        if len(self.action_with_ball) != self.num_actions or \
-                len(self.action_without_ball) != self.num_actions:
-            raise ValueError(f"Number of actions != {self.num_actions}")
-            
-        # print(f"[ACTIONS] num_team={num_team}, num-action={self.num_actions}")
+        self.actions += self.ACTIONS_WITHOUT_BALL
+        # Actions with ball:
+        self.actions += self.ACTIONS_WITH_BALL
+        for idx in range(num_team):
+            aux_action_name = "PASS" + str(idx)
+            self.actions.append(aux_action_name)
+            self.ACTIONS_WITH_BALL.append(aux_action_name)
+    
+        self.num_actions = len(self.actions)
+    
+        print(f"[ACTIONS] num_team={num_team}, num-action={self.num_actions}")
     
     def get_num_actions(self):
         return self.num_actions
@@ -68,7 +63,7 @@ class Actions:
             raise Exception("Initial positions invalid. Initial positions "
                             "should be a float with 1 digit or less")
         curr_pos = self.features.get_pos_tuple(round_ndigits=1)
-        while pos != curr_pos:
+        while pos != curr_pos and self.game_interface.in_game():
             hfo_action = (DRIBBLE_TO, pos[0], pos[1])
             status, observation = self.game_interface.step(hfo_action)
             # Update self.features:
@@ -76,17 +71,19 @@ class Actions:
             curr_pos = self.features.get_pos_tuple(round_ndigits=1)
         # stop agent:
         if stop:
-            for _ in range(5):
+            rep = 0
+            while rep <= 5 and self.game_interface.in_game():
                 hfo_action = (DRIBBLE_TO, pos[0], pos[1])
                 status, observation = self.game_interface.step(hfo_action)
                 # Update self.features:
                 self.features.update_features(observation)
+                rep += 1
     
     def move_to_pos(self, pos: tuple):
         """ The agent keeps moving until reach the position expected """
         pos = (round(pos[0], 2), round(pos[1], 2))
         curr_pos = self.features.get_pos_tuple(round_ndigits=2)
-        while pos != curr_pos:
+        while pos != curr_pos and self.game_interface.in_game():
             hfo_action = (MOVE_TO, pos[0], pos[1])
             status, observation = self.game_interface.step(hfo_action)
             # Update self.features:
@@ -113,13 +110,12 @@ class Actions:
         idx = int(np.argmax(np.array(angles)))
         best_shoot_coord = self.shoot_possible_coord[idx]
         # Action parameters:
-        hfo_action = (KICK_TO, best_shoot_coord[0], best_shoot_coord[1], 2.4)
+        hfo_action = (KICK_TO, best_shoot_coord[0], best_shoot_coord[1], 2.3)
         # Step game:
-        _, obs = self.game_interface.step(hfo_action)
+        status, obs = self.game_interface.step(hfo_action)
         # Update self.features:
         self.features.update_features(obs)
-        return self.game_interface.get_game_status(), \
-               self.game_interface.get_observation()
+        return status, obs
 
     def disc_move_agent(self, action_name):
         """ Agent Moves/Dribbles in a discrete form """
@@ -168,7 +164,7 @@ class Actions:
             status, observation = self.game_interface.step(action)
             self.features.update_features(observation)
             attempts += 1
-        while not self.features.has_ball():
+        while not self.features.has_ball() and self.game_interface.in_game():
             action = GO_TO_BALL
             status, observation = self.game_interface.step(action)
             self.features.update_features(observation)
@@ -192,7 +188,7 @@ class Actions:
         attempts = 0
         while self.game_interface.in_game() and self.features.has_ball():
             if attempts >= 2:
-                hfo_action = (KICK_TO, x_pos, y_pos, 1.5)
+                hfo_action = (KICK_TO, x_pos, y_pos, 1.7)
                 status, obs = self.game_interface.step(hfo_action)
                 self.features.update_features(obs)
                 break
@@ -296,57 +292,60 @@ class Actions:
             attempts += 1
         return status, observation
 
-    def execute_action(self, action_idx: int, with_ball: bool,
-                       verbose: bool = False) -> int:
+    def execute_action(self, action_idx: int, verbose: bool = False) -> \
+            (int, bool):
         """ Receiving the idx of the action, the agent executes it and
         returns the game status """
         # Check action_idx:
         if action_idx < 0 or action_idx >= self.num_actions:
             raise ValueError(f"[Actions] action_idx invalid {action_idx}")
-        if (with_ball and self.features.has_ball() is False) or \
-                (not with_ball and self.features.has_ball() is True):
-            raise ValueError("With ball is wrong")
+
+        action_name = self.actions[action_idx]
+        correct_action = True
         
-        if with_ball:
-            # Execute Action:
-            action_name = self.action_with_ball[action_idx]
+        if self.features.has_ball():
             if verbose:
-                print(f"[Y] ACTION NAME -> {action_name}")
+                if action_name in self.ACTIONS_WITH_BALL:
+                    print(f"[Y] ACTION NAME -> {action_name}")
+                else:
+                    print(f"[Y] WRONG ACTION NAME -> {action_name}")
             if action_name == "SHOOT":
-                status, observation = self.best_shoot_ball()
+                status, _ = self.best_shoot_ball()
             elif action_name == "SHORT_DRIBBLE":
-                status, observation = self.dribble_action(self.NUM_SHORT_REP)
+                status, _ = self.dribble_action(self.NUM_SHORT_REP)
             elif action_name == "LONG_DRIBBLE":
-                status, observation = self.dribble_action(self.NUM_LONG_REP)
+                status, _ = self.dribble_action(self.NUM_LONG_REP)
             elif "PASS" in action_name:
                 _, teammate_id = action_name.split("PASS")
-                status, observation = self.pass_ball(int(teammate_id))
+                status, _ = self.pass_ball(int(teammate_id))
             else:
-                status, observation = self.do_nothing(self.NUM_SHORT_REP)
+                correct_action = False
+                status, _ = self.do_nothing(self.NUM_SHORT_REP)
         else:
-            # Execute Action:
-            action_name = self.action_without_ball[action_idx]
             if verbose:
-                print(f"[N] ACTION NAME -> {action_name}")
-            if action_name == "NOOP":
-                status, observation = self.do_nothing(self.NUM_SHORT_REP)
+                if action_name in self.ACTIONS_WITHOUT_BALL:
+                    print(f"[N] ACTION NAME -> {action_name}")
+                else:
+                    print(f"[N] WRONG ACTION NAME -> {action_name}")
+            if action_name == "STAY":
+                status, _ = self.do_nothing(self.NUM_SHORT_REP)
             elif action_name == "MOVE_TO_BALL":
-                status, observation = self.move_to_ball(self.NUM_SHORT_REP)
+                status, _ = self.move_to_ball(self.NUM_SHORT_REP)
             elif action_name == "MOVE_TO_GOAL":
-                status, observation = self.move_to_goal(self.NUM_SHORT_REP)
+                status, _ = self.move_to_goal(self.NUM_SHORT_REP)
             elif action_name == "MOVE_TO_NEAR_TEAM":
-                status, observation = self.move_to_nearest_teammate(
+                status, _ = self.move_to_nearest_teammate(
                     self.NUM_SHORT_REP)
             elif action_name == "MOVE_FROM_NEAR_TEAM":
-                status, observation = self.move_away_from_nearest_teammate(
+                status, _ = self.move_away_from_nearest_teammate(
                     self.NUM_SHORT_REP)
             elif action_name == "MOVE_TO_NEAR_OP":
-                status, observation = self.move_to_nearest_opponent(
+                status, _ = self.move_to_nearest_opponent(
                     self.NUM_SHORT_REP)
             elif action_name == "MOVE_FROM_NEAR_OP":
-                status, observation = self.move_away_from_nearest_opponent(
+                status, _ = self.move_away_from_nearest_opponent(
                     self.NUM_SHORT_REP)
             else:
-                raise ValueError("Action Name wrong value")
-        self.features.update_features(self.game_interface.get_observation())
-        return status
+                correct_action = False
+                status, _ = self.do_nothing(self.NUM_SHORT_REP)
+        return status, correct_action

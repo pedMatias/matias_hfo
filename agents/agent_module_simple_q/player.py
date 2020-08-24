@@ -4,11 +4,12 @@ import random
 
 import settings
 from agents.base.hfo_attacking_player import HFOAttackingPlayer
-from agents.agent_module_dqn.deep_agent import DQNAgent
 from environement_features.reward_functions import basic_reward
-from actions_levels.action_module import DiscreteActionsModule
-from agents.agent_module_dqn.features.discrete_features import \
+from agents.agent_module_simple_q.actions.action_module import \
+    DiscreteActionsModule
+from agents.agent_module_simple_q.features.discrete_features import \
     DiscreteFeatures1Teammate
+from agents.agent_module_simple_q.q_agent import QAgent
 
 STARTING_POSITIONS = {"TOP LEFT": (-0.5, -0.7), "TOP RIGHT": (0.4, -0.7),
                       "MID LEFT": (-0.5, 0.0), "MID RIGHT": (0.4, 0.0),
@@ -27,10 +28,10 @@ class Player:
         # Actions Interface:
         self.actions = DiscreteActionsModule()
         # Agent instance:
-        self.agent = DQNAgent(num_features=self.features.num_features,
-                              num_actions=self.actions.get_num_actions(),
-                              learning_rate=0.1, discount_factor=0.9,
-                              epsilon=0.8)
+        self.agent = QAgent(num_features=self.features.num_features,
+                            num_actions=self.actions.get_num_actions(),
+                            learning_rate=0.1, discount_factor=0.9, epsilon=1,
+                            final_epsilon=0.3)
     
     def get_reward(self, status: int) -> int:
         return basic_reward(status)
@@ -56,9 +57,69 @@ class Player:
         # Informs the other players that it is ready to start:
         game_interface.hfo.say(settings.PLAYER_READY_MSG)
 
-    def test(self, num_episodes: int, start_with_ball:bool = True) -> float:
+    def train(self, num_train_episodes: int, num_total_train_ep: int,
+              start_with_ball: bool = True):
+        """
+        @param num_train_episodes: number of episodes to train in this iteration
+        @param num_total_train_ep: number total of episodes to train
+        @param start_with_ball: bool
+        @raise ServerDownError
+        @return: (QLearningAgentV5) the agent
+        """
+        # metrics variables:
+        _num_wins = 0
+        _sum_epsilons = 0
+        for ep in range(num_train_episodes):
+            # Check if server still running:
+            self.game_interface.check_server_is_up()
+            # Update features:
+            self.features.update_features(self.game_interface.get_state())
+            # Go to origin position:
+            self.set_starting_game_conditions(
+                game_interface=self.game_interface, features=self.features,
+                start_with_ball=start_with_ball)
+            
+            # Start learning loop
+            goal = False  # bool flag
+            while self.game_interface.in_game():
+                # Update environment features:
+                features_array = self.features.get_features().copy()
+            
+                # Act:
+                action_idx = self.agent.act(features_array)
+                status = self.actions.execute_action(
+                    action_idx=action_idx,
+                    features=self.features,
+                    game_interface=self.game_interface)
+
+                # Every step we update replay memory and train main network
+                done = not self.game_interface.in_game()
+                goal = self.game_interface.scored_goal()
+                self.agent.store_transition(
+                    curr_st=features_array,
+                    action_idx=action_idx,
+                    reward=self.get_reward(status),
+                    new_st=self.features.get_features(),
+                    done=done)
+            
+            # Train
+            self.agent.train(goal)
+            # Update auxiliar variables:
+            _sum_epsilons += self.agent.epsilon
+            _num_wins += 1 if self.game_interface.scored_goal() else 0
+            # Update Agent:
+            self.agent.restart(num_total_train_ep)
+            # Game Reset
+            self.game_interface.reset()
+        print("[TRAIN: Summary] WIN rate = {}; AVR epsilon = {}".format(
+            _num_wins / num_train_episodes, _sum_epsilons / num_train_episodes))
+
+    def test(self, num_episodes: int, start_with_ball: bool = True,
+             training: bool = False) -> float:
         """
         @param num_episodes: number of episodes to run
+        @param start_with_ball: flag
+        @param training: flag
         @return: (float) the win rate
         """
         starting_pos_list = list(STARTING_POSITIONS.values())
@@ -83,7 +144,7 @@ class Player:
     
                 # Act:
                 action_idx = self.agent.exploit_actions(features_array)
-                if prev_action_idx != action_idx:
+                if prev_action_idx != action_idx and not training:
                     print("ACTION:: {}".format(
                         self.actions.map_action_to_str(
                             action_idx, self.features.has_ball())))
@@ -101,57 +162,3 @@ class Player:
         avr_win_rate = _num_wins / num_episodes
         print("[TEST: Summary] WIN rate = {};".format(avr_win_rate))
         return avr_win_rate
-
-    def train(self, num_train_episodes: int, num_total_train_ep: int,
-              start_with_ball: bool = True):
-        """
-        @param num_train_episodes: number of episodes to train in this iteration
-        @param num_total_train_ep: number total of episodes to train
-        @param start_with_ball: bool
-        @raise ServerDownError
-        @return: (QLearningAgentV5) the agent
-        """
-        # metrics variables:
-        _num_wins = 0
-        _sum_epsilons = 0
-        for ep in range(num_train_episodes):
-            # Check if server still running:
-            self.game_interface.check_server_is_up()
-            # Update features:
-            self.features.update_features(self.game_interface.get_state())
-            # Go to origin position:
-            self.set_starting_game_conditions(
-                game_interface=self.game_interface, features=self.features,
-                start_with_ball=start_with_ball)
-            
-            # Start learning loop
-            while self.game_interface.in_game():
-                # Update environment features:
-                features_array = self.features.get_features().copy()
-            
-                # Act:
-                action_idx = self.agent.act(features_array)
-                status = self.actions.execute_action(
-                    action_idx=action_idx,
-                    features=self.features,
-                    game_interface=self.game_interface)
-
-                # Every step we update replay memory and train main network
-                done = not self.game_interface.in_game()
-                self.agent.store_transition(
-                    curr_st=features_array,
-                    action_idx=action_idx,
-                    reward=self.get_reward(status),
-                    new_st=self.features.get_features(),
-                    done=done)
-                self.agent.train(done)
-            
-            # Update auxiliar variables:
-            _sum_epsilons += self.agent.epsilon
-            _num_wins += 1 if self.game_interface.scored_goal() else 0
-            # Update Agent:
-            self.agent.restart(num_total_train_ep)
-            # Game Reset
-            self.game_interface.reset()
-        print("[TRAIN: Summary] WIN rate = {}; AVR epsilon = {}".format(
-            _num_wins / num_train_episodes, _sum_epsilons / num_train_episodes))

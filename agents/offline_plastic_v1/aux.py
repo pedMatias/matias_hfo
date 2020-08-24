@@ -40,15 +40,37 @@ def save_model(q_table: str, directory: str, file_name: str):
     np.save(file_path, q_table)
 
 
-def print_transiction(arr: tuple, actions_instance):
+def print_transiction(arr: tuple, actions_instance, simplex=False):
     """ Transcition array format
     (observation space, action, reward, new observation space, done) """
     def round_list(lista):
         return [round(el, 2) for el in lista]
-    print("+ D?:{}; {} -> {}; R:{}; Act:{};".format(
-        arr[4],
-        round_list(arr[0].tolist()),
-        round_list(arr[3].tolist()),
-        arr[2],
-        actions_instance.actions[arr[1]]
-    ))
+    if simplex:
+        print("+ R:{}; Act:{} D?:{}; {};".format(
+            arr[2],
+            actions_instance.actions[arr[1]],
+            arr[4],
+            round_list(arr[0].tolist())
+        ))
+    else:
+        print("+ D?:{}; {} -> {}; R:{}; Act:{};".format(
+            arr[4],
+            round_list(arr[0].tolist()),
+            round_list(arr[3].tolist()),
+            arr[2],
+            actions_instance.actions[arr[1]]
+        ))
+
+
+def check_same_model(model1, model2):
+    obs1 = np.array([-0.38, -0.0, -0.16, -0.89, -0.11, -1.0, -0.92, 0.2, 0.0])
+    obs2 = np.array([-0.28, 0.34, -0.03, -0.88, -0.13, -1.0, -0.86, -0.12, 0.0])
+    obs3 = np.array([0.49, 0.16, -0.23, -0.65, -0.72, 1.0, -0.61, -0.62, 0.0])
+    for obs in [obs1, obs2, obs3]:
+        state = obs[np.newaxis, :]
+        qs1 = model1.predict(state)
+        qs2 = model2.predict(state)
+        if qs1.all() != qs2.all():
+            print("Different Models: ", qs1, qs2)
+            return False
+    return True

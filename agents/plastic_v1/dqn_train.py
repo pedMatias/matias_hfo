@@ -4,9 +4,8 @@ import json
 import os
 import argparse
 
-import numpy as np
-from agents.plastic_v0.aux import mkdir
-from agents.plastic_v0.dqn_player import Player
+from agents.plastic_v1.aux import mkdir
+from agents.plastic_v1.dqn_player import Player
 from agents.utils import ServerDownError
 
 
@@ -23,15 +22,17 @@ def export_metrics(trained_eps: list, avr_win_rate: list, epsilons: list,
         json.dump(data, fp)
     
         
-def train_agent_online(player: Player, num_train_ep, num_test_ep,
-                       starts_with_ball, num_repetitions, save_dir):
+def train_agent_online(player: Player, num_train_ep: int, num_test_ep: int,
+                       starts_with_ball: bool, starts_fixed_position: bool,
+                       num_repetitions: int, save_dir: str):
     # Test one first time without previous train:
-    # av_reward = player.test(num_episodes=num_test_ep,
-    #                         start_with_ball=starts_with_ball)
+    av_reward = player.test(num_episodes=num_test_ep,
+                            start_with_ball=starts_with_ball,
+                            starts_fixed_position=starts_fixed_position)
     # Save metrics structures
     trained_eps_list = [0]
     avr_epsilons_list = [player.agent.epsilon]
-    avr_win_rate = [0]  # av_reward]
+    avr_win_rate = [av_reward]
     
     # Train - test iterations:
     fail = False  # bool flag
@@ -42,7 +43,8 @@ def train_agent_online(player: Player, num_train_ep, num_test_ep,
             av_epsilon = player.train(
                 num_train_episodes=num_train_ep,
                 num_total_train_ep=num_train_ep * num_repetitions,
-                start_with_ball=starts_with_ball)
+                start_with_ball=starts_with_ball,
+                starts_fixed_position=starts_fixed_position)
             # Test:
             av_reward = player.test(num_episodes=num_test_ep,
                                     start_with_ball=starts_with_ball)
@@ -86,6 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_repetitions', type=int, default=0)
     parser.add_argument('--retrain', type=bool, default=False)
     parser.add_argument('--starts_with_ball', type=bool, default=True)
+    parser.add_argument('--starts_fixed_position', type=bool, default=True)
     parser.add_argument('--load_file', type=str, default=None)
     parser.add_argument('--save_dir', type=str, default=None)
     parser.add_argument('--port', type=int, default=6000)
@@ -99,6 +102,7 @@ if __name__ == '__main__':
     num_repetitions = args.num_repetitions
     num_episodes = (num_train_ep + num_test_ep) * num_repetitions
     starts_with_ball = args.starts_with_ball
+    starts_fixed_position = args.starts_fixed_position
     port = args.port
 
     # Start Player:
@@ -127,8 +131,11 @@ if __name__ == '__main__':
             "RETRAIN" if args.retrain else "TRAIN",
             num_op, num_op, starts_with_ball))
     
-    train_agent_online(player, num_train_ep, num_test_ep,
-                       starts_with_ball, num_repetitions, save_dir)
+    train_agent_online(player=player, num_train_ep=num_train_ep,
+                       num_test_ep=num_test_ep,
+                       starts_with_ball=starts_with_ball,
+                       starts_fixed_position=starts_fixed_position,
+                       num_repetitions=num_repetitions, save_dir=save_dir)
     
     print("\n\n!!!!!!!!! AGENT FINISHED !!!!!!!!!!!!\n\n")
     player.agent.save_model(file_name=save_dir + "/agent_model")

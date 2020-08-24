@@ -28,7 +28,12 @@ NUM_TRAIN_REP = 50
 
 class Player:
     def __init__(self, num_opponents: int, num_teammates: int,
+                 learn_team: bool = True, verbose: bool = True,
                  port: int = 6000):
+        self.num_teammates = num_teammates
+        self.num_opponents = num_opponents
+        self.learn_team = learn_team
+        
         # Game Interface:
         self.game_interface = HFOAttackingPlayer(num_opponents=num_opponents,
                                                  num_teammates=num_teammates,

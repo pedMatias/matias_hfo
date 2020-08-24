@@ -3,9 +3,6 @@ import random
 from collections import deque
 from typing import List
 
-from keras.models import Sequential, load_model
-from keras.layers import Dense
-from keras.optimizers import Adam
 import tensorflow as tf
 
 from agents.base.agent import Agent
@@ -21,7 +18,6 @@ UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
 # For more repetitive results
 random.seed(2)
 np.random.seed(2)
-tf.set_random_seed(2)
 
 
 class Transition:
@@ -42,9 +38,10 @@ class Transition:
 # Agent class
 class DQNAgent(Agent):
     def __init__(self, num_features: int, num_actions: int,
-                 learning_rate: float = 0.1, discount_factor: float = 0.9,
+                 learning_rate: float = 0.01, discount_factor: float = 0.9,
                  epsilon: float = 0.9, final_epsilon: float = 0.1,
-                 epsilon_decay: float = 0.995, tau: float = 0.125):
+                 epsilon_decay: float = 0.995, tau: float = 0.125,
+                 create_model: bool = True):
         
         super().__init__(num_features, num_actions, learning_rate,
                          discount_factor, epsilon, final_epsilon)
@@ -52,27 +49,32 @@ class DQNAgent(Agent):
         # Epsilon:
         self.epsilon_min = final_epsilon
         self.epsilon_decay = epsilon_decay
-        
-        # Model:
-        self.model = self.create_model(num_features, num_actions)
-        self.tau = tau
 
-        # Target network
-        self.target_model = self.create_model(num_features, num_actions)
-        self.target_model.set_weights(self.model.get_weights())
-        self.target_update_counter = 0
+        # Models:
+        self.tau = tau
+        if create_model:
+            self.model = self.create_model(num_features, num_actions)
+        else:
+            self.model = None
 
         # An array with last n steps for training
         self.replay_memory = deque(maxlen=REPLAY_MEMORY_SIZE)
 
     def create_model(self, num_features: int, num_actions: int):
+        from keras.models import Sequential
+        from keras.layers import Dense
+        from keras.optimizers import Adam
+        import tensorflow as tf
+        tf.compat.v1.set_random_seed(0)
+        
         """ model.add(LeakyReLU(alpha=0.1))"""
-        self.model_description = "{}f_32_32_32_{}a".format(
+        self.model_description = "{}f_128_128_128_128_{}a".format(
             num_features, num_actions)
         model = Sequential()
-        model.add(Dense(32, input_dim=num_features, activation="relu"))
-        model.add(Dense(32, activation="relu"))
-        model.add(Dense(32, activation="relu"))
+        model.add(Dense(128, input_dim=num_features, activation="relu"))
+        model.add(Dense(128, activation="relu"))
+        model.add(Dense(128, activation="relu"))
+        model.add(Dense(128, activation="relu"))
         model.add(Dense(num_actions, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(lr=self.learning_rate))
         return model
@@ -91,20 +93,22 @@ class DQNAgent(Agent):
             for transition in transitions:
                 self.replay_memory.append(transition.to_tuple())
     
-    def fit_batch(self, minibatch: List[Transition], verbose: int = 0) -> list:
+    def fit_batch(self, minibatch: List[Transition], verbose: int = 0,
+                  epochs: int = 1) -> list:
         # Get current states from minibatch, then query NN model for Q values
         current_states = np.array([transition.obs for transition in minibatch])
         current_qs_list = self.model.predict(current_states)
+        
         # Get future states from minibatch, then query NN model for Q values
         new_states = np.array([transition.new_obs for transition in minibatch])
-        future_qs_list = self.target_model.predict(new_states)
+        future_qs_list = self.model.predict(new_states)
         
         # Now we need to enumerate our batches
         X = []
         y = []
         for idx, transition in enumerate(minibatch):
             # If not a terminal state, get new q from future states, else 0
-            # almost like with Q Learning, but we use just part of equation here
+            # almost like with Q Learning, but we use just part of equation
             if not transition.done:
                 max_future_q = max(future_qs_list[idx])
                 target_td = transition.reward + (self.discount_factor *
@@ -122,31 +126,18 @@ class DQNAgent(Agent):
             y.append(current_qs)
     
         # Fit on all samples as one batch, log only on terminal state
-        epochs = len(X) // MINIBATCH_SIZE
         history = self.model.fit(np.array(X), np.array(y), epochs=epochs,
                                  shuffle=True, verbose=verbose,
                                  batch_size=MINIBATCH_SIZE)
-        return history.history["loss"]
+        try:
+            loss = history.history["loss"]
+        except KeyError as e:
+            print("Loss not avaiable. History: ", history.history)
+            raise e
+        return loss
 
-    def train(self, terminal_state: bool):
-        """ Trains main network every step during episode """
-        # Start training only if certain number of samples is already saved
-        if len(self.replay_memory) < MIN_REPLAY_MEMORY_SIZE:
-            return
-
-        # Get a minibatch of random samples from memory replay table
-        minibatch = random.sample(self.replay_memory, MINIBATCH_SIZE)
-
-        self.fit_batch(minibatch)
-
-        # Update target network counter every episode
-        if terminal_state:
-            self.target_update_counter += 1
-
-        # If counter reaches set value, update target network
-        if self.target_update_counter > UPDATE_TARGET_EVERY:
-            self.target_model.set_weights(self.model.get_weights())
-            self.target_update_counter = 0
+    def train(self, terminal_state):
+        pass
 
     def restart(self, num_total_episodes: int):
         # Increment num episodes trained
@@ -161,18 +152,18 @@ class DQNAgent(Agent):
         state = state[np.newaxis, :]
         qs = self.model.predict(state)
         return qs
-    
-    def get_target_model_qs(self, state: np.ndarray):
-        state = state[np.newaxis, :]
-        qs = self.target_model.predict(state)
-        return qs
 
     def save_model(self, file_name: str):
         self.model.save(file_name)
 
     # Queries main network for Q values given current observation space
     def load_model(self, load_file: str):
+        from keras.models import load_model
+        from keras import backend as K
         self.model = load_model(load_file)
+
+        # Change learning rate to 0.001 and train for 50 more epochs
+        K.set_value(self.model.optimizer.learning_rate, self.learning_rate)
     
     # def train_target_model(self):
     #     weights = self.model.get_weights()

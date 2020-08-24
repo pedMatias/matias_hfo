@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 from hfo import MOVE_TO, DRIBBLE_TO, KICK_TO, NOOP, GO_TO_BALL
 
-from agents.plastic_v1.base.hfo_attacking_player import HFOAttackingPlayer
-from agents.plastic_v1.features.plastic_features import PlasticFeatures
+from agents.offline_plastic_v1.base.hfo_attacking_player import HFOAttackingPlayer
+from agents.offline_plastic_v1.features.plastic_features import PlasticFeatures
 from agents.utils import get_angle
 
 
@@ -12,6 +12,10 @@ class BaseActions(ABC):
     # ACTIONS:
     ACTIONS_WITHOUT_BALL = []
     ACTIONS_WITH_BALL = []
+    
+    # SHOOT POSSIBLE POS:
+    shoot_possible_coord = [np.array([0.83, -0.17]), np.array([0.83, 0]),
+                            np.array([0.83, 0.17])]
     
     def __init__(self, num_team: int, features: PlasticFeatures,
                  game_interface: HFOAttackingPlayer):
@@ -67,7 +71,7 @@ class BaseActions(ABC):
                 # Update self.features:
                 self.features.update_features(observation)
                 rep += 1
-    
+
     def move_to_ball(self, num_rep: int = 1):
         """ Move towards the ball  """
         status = 0
@@ -76,15 +80,45 @@ class BaseActions(ABC):
         while self.game_interface.in_game() and attempts < num_rep:
             action = (GO_TO_BALL,)
             status, observation = self.game_interface.step(action)
+            
             self.features.update_features(observation)
+            #a_coord: np.ndarray = self.features.get_agent_coord()
+            #t_coord: np.ndarray = self.features.get_teammate_coord()
+            #ball_coord: np.ndarray = self.features.get_ball_coord()
+            #
+            #if abs(np.linalg.norm(t_coord - ball_coord)) <= 0.1 and \
+            #        abs(np.linalg.norm(a_coord - t_coord)) <= 0.2 and \
+            #        abs(np.linalg.norm(a_coord - ball_coord)) > 0.1:
+            #    return status, observation
+            
             attempts += 1
         return status, observation
-    
+
+    def move_to_goal(self, num_rep: int = 1):
+        """ Move towards the opposing goal  """
+        goal_coord = np.array([0.6, 0])
+        status = 0
+        observation = []
+        attempts = 0
+        while self.game_interface.in_game() and attempts < num_rep:
+            action = (MOVE_TO, goal_coord[0], goal_coord[1])
+            status, observation = self.game_interface.step(action)
+            self.features.update_features(observation)
+            
+            a_coord: np.ndarray = self.features.get_agent_coord()
+            if abs(np.linalg.norm(a_coord - goal_coord)) <= 0.15:
+                break
+                
+            attempts += 1
+        return status, observation
+
     def move_to_pos(self, pos: tuple):
         """ The agent keeps moving until reach the position expected """
         pos = (round(pos[0], 2), round(pos[1], 2))
         curr_pos = self.features.get_pos_tuple(round_ndigits=2)
-        while pos != curr_pos and self.game_interface.in_game():
+        while abs(pos[0] - curr_pos[0]) > 0.04 and \
+                abs(pos[1] - curr_pos[1]) > 0.04 and \
+                self.game_interface.in_game():
             hfo_action = (MOVE_TO, pos[0], pos[1])
             status, observation = self.game_interface.step(hfo_action)
             # Update self.features:

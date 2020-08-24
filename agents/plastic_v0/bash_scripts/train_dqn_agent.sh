@@ -11,9 +11,9 @@ PYTHON=$BASE_DIR/venv/bin/python
 MODULE_DIR=$BASE_DIR/matias_hfo/agents
 
 # Train config:
-NUM_TRAIN_EP=2000
-NUM_TEST_EP=30
-NUM_REPETITIONS=25
+NUM_TRAIN_EP=2500
+NUM_TEST_EP=18
+NUM_REPETITIONS=20
 NUM_EPISODES=$(($(($NUM_TRAIN_EP + $NUM_TEST_EP)) * $NUM_REPETITIONS))
 echo "Episodes: $NUM_EPISODES"
 
@@ -29,18 +29,18 @@ TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
-# DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/player_agent.py
+# DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/good_teammate.py
 DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/goalkeeper_v2.py
 STATIC_AGENT_FILE=$MODULE_DIR/fixed_agents/fixed_teammate/static_agent.py
 
-OFFENSE_AGENT_FILE=$MODULE_DIR/dqn_v1/dqn_train.py
+OFFENSE_AGENT_FILE=$MODULE_DIR/plastic_v0/dqn_train.py
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
- --offense-on-ball 6  --trials $NUM_EPISODES --deterministic --fullstate \
- --no-logging --frames-per-trial 300 --untouched-time 100 \
+ --offense-on-ball 20  --trials $NUM_EPISODES --deterministic --fullstate \
+ --no-logging --frames-per-trial 500 --untouched-time 300 \
  --headless >> hfo.log &
-# --no-sync >> hfo.log &
+#  --no-sync >> hfo.log &
 
 sleep 2
 echo "Connect to Main player"

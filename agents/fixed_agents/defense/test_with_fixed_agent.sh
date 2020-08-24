@@ -11,27 +11,22 @@ PYTHON=$BASE_DIR/venv/bin/python
 MODULE_DIR=$BASE_DIR/matias_hfo/agents
 DATA_DIR=$BASE_DIR/matias_hfo/data
 
-# Test config:
-OFFENSE_AGENT_FILE=$MODULE_DIR/dqn_v1/test.py
-# Q table:
-Q_TABLE=$DATA_DIR/q_agent_train_1ep_oldEps_2020-05-12_17:22:00/original_model.npy
+NUM_EPISODES=6
 
-NUM_EPISODES=30
-
-NUM_DEFENSES=1
+NUM_DEFENSES=2
 NUM_DEFENSES_NPCS=0
 TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
 TOTAL_OPPONENTS=$TOTAL_DEFENSES
 echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
 
-NUM_OFFENSES=2
-NUM_OFFENSES_NPCS=0
+NUM_OFFENSES=0
+NUM_OFFENSES_NPCS=1
 TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
-DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/player_agent.py
-# DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/goalkeeper_v2.py
+GOALIE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/player_agent.py
+DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/defense/hand_coded_defense_agent.py
 STATIC_AGENT_FILE=$MODULE_DIR/fixed_agents/fixed_teammate/static_agent.py
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
@@ -43,21 +38,13 @@ $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
 # Sleep is needed to make sure doesn't get connected too soon, as unum 1 (goalie)
 
 sleep 2
-echo "Connect to Main player"
-$PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
---num_teammates=$TOTAL_TEAMMATES --num_ep=$NUM_EPISODES --load_file=$Q_TABLE &
-echo "PLayer connected"
-
-sleep 2
-echo "Connect to Static player"
-$PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$NUM_EPISODES \
---num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES &
-echo "PLayer connected"
-
-sleep 2
 echo "Connect Defense Player"
-$PYTHON $DEFENSE_AGENT_FILE  --num_episodes=$NUM_EPISODES \
+$PYTHON $GOALIE_AGENT_FILE  --num_episodes=$NUM_EPISODES \
 --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+
+sleep 2
+echo "Connect to Main player"
+$PYTHON $DEFENSE_AGENT_FILE  &
 
 # .py &
 # The magic line

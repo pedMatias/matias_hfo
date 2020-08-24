@@ -1,20 +1,23 @@
 import numpy as np
 import yaml
 from torch.nn.functional import softmax
+from collections import deque
 
+from agents.plastic_dqn import config
 from models.ReplayMemoryModel import ReplayMemoryModel
 from environment.PursuitState import PursuitState
 from models.FeedForwardNetwork import FeedForwardNetwork
 
 
-class TeamModel(ReplayMemoryModel):
+class TeamModel:
 
-    def __init__(self, num_teammates, trainable):
-
-        with open("config.yaml", 'r') as stream: config = yaml.load(stream, Loader=yaml.FullLoader)
-        super().__init__("teammates model", trainable,
-                         self.parse_layer_blueprints(config["teammates model"]["layers"]),
-                         config["replay min batch"], config["replay memory size"])
+    def __init__(self, num_teammates: int, trainable: bool, num_features):
+        self._name = "teammates model"
+        self._replay_memory = deque(maxlen=config.REPLAY_MEMORY_SIZE)
+        self._replay_batch_size = config.REPLAY_MIN_BATCH
+        self._trainable = trainable
+        self._input_layers = self.parse_layer_blueprints(
+            config.TEAMMATE_MODEL_LAYERS)
 
         # #################### #
         # Auxiliary Structures #
@@ -30,7 +33,7 @@ class TeamModel(ReplayMemoryModel):
         # Hyper Parameters #
         # ################ #
 
-        self.learning_rate = config["learning rate"]
+        self.learning_rate = config.LEARNING_RATE
 
         # ##### #
         # Model #
@@ -45,6 +48,29 @@ class TeamModel(ReplayMemoryModel):
                 cuda=True
             ) for _ in range(num_teammates)
         ]
+    
+    def create_model(self):
+        from keras.models import Sequential
+        from keras.layers import Dense
+        from keras.optimizers import Adam
+        import tensorflow as tf
+        tf.compat.v1.set_random_seed(0)
+    
+        model = Sequential()
+        model.add(Dense(128, input_dim=num_features, activation="relu"))
+        model.add(Dense(128, activation="relu"))
+        model.add(Dense(128, activation="relu"))
+        model.add(Dense(128, activation="relu"))
+        model.add(Dense(num_actions, activation='linear'))
+        model.compile(loss="mse", optimizer=Adam(lr=self.learning_rate))
+        return model
+
+    @staticmethod
+    def parse_layer_blueprints(layer_blueprints):
+        layers = []
+        for units, activation in layer_blueprints:
+            layers.append((int(units), activation))
+        return layers
 
     # ############## #
     # MAIN INTERFACE #

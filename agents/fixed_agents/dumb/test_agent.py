@@ -1,4 +1,5 @@
 import random
+import argparse
 
 from hfo import HFOEnvironment, HIGH_LEVEL_FEATURE_SET, IN_GAME, MOVE, SHOOT, \
     DRIBBLE, SERVER_DOWN, QUIT, MOVE_TO, INTERCEPT, DRIBBLE_TO, KICK_TO, NOOP
@@ -8,8 +9,14 @@ from settings import CONFIG_DIR
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int, default=6000)
+
+    args = parser.parse_args()
+    port = args.port
+    
     hfo = HFOEnvironment()
-    hfo.connectToServer(feature_set=HIGH_LEVEL_FEATURE_SET, server_port=6000,
+    hfo.connectToServer(feature_set=HIGH_LEVEL_FEATURE_SET, server_port=port,
                         config_dir=CONFIG_DIR)
     for i in range(1):
         status = IN_GAME

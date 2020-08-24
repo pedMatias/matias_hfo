@@ -5,79 +5,945 @@ export PYTHONPATH=/home/matias/Desktop/HFO:$PYTHONPATH
 export PYTHONPATH=/home/matias/Desktop/HFO/matias_hfo:$PYTHONPATH
 echo $PYTHONPATH
 
-PORT=6010
+PORT=6000
 
 BASE_DIR=/home/matias/Desktop/HFO
 HFO=$BASE_DIR/bin/HFO
 PYTHON=$BASE_DIR/venv/bin/python
-MODULE_DIR=$BASE_DIR/matias_hfo/agents
+AGENTS_DIR=$BASE_DIR/matias_hfo/agents
+DATA_DIR=$BASE_DIR/matias_hfo/data
 
-# Train config:
-NUM_EPISODES=6000
-echo "Episodes: $NUM_EPISODES"
-
-OFFENSE_AGENT_FILE=$MODULE_DIR/plastic_v1/explore_player.py
-
-GOALKEEPER_TYPE="good_goalkeeper"  # dumb_goalkeeper, good_goalkeeper, helios
-TEAMMATE_TYPE="static_teammate"  # static_teammate, good_teammate, helios
-
-
-if [ "$GOALKEEPER_TYPE" == "helios" ]; then
-  NUM_DEFENSES=0
-  NUM_DEFENSES_NPCS=1
-else
-  NUM_DEFENSES=1
-  NUM_DEFENSES_NPCS=0
-fi
+NUM_DEFENSES=1
+NUM_DEFENSES_NPCS=0
 TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
 TOTAL_OPPONENTS=$TOTAL_DEFENSES
 echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
 
-if [ "$TEAMMATE_TYPE" == "helios" ]; then
-  NUM_OFFENSES=1
-  NUM_OFFENSES_NPCS=1
-else
-  NUM_OFFENSES=2
-  NUM_OFFENSES_NPCS=0
-fi
+NUM_OFFENSES=2
+NUM_OFFENSES_NPCS=0
 TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
-$HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
- --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
- --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic --fullstate \
- --no-logging --frames-per-trial 500 --untouched-time 300 --port $PORT \
- --headless >> hfo.log &
-# --no-sync >> hfo.log &
+DIR_NAME=$DATA_DIR/complete_train_v1
+# DIR_NAME=$DATA_DIR/complete_train_complete_actions$(date +"%Y-%m-%dT%T")
+mkdir $DIR_NAME
 
-sleep 2
-echo "Connect to Main player"
-$PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
---num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
---teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
---starts_with_ball="false" --starts_fixed_position="true" --port=$PORT &
-echo "PLayer connected"
+# ************************************* STAGE 1 ********************************
+# Train with a static_teammate, against a dumb_goalkeeper
+STAGE=1
+echo "** STAGE $STAGE **"
 
-if [ "$TEAMMATE_TYPE" != "helios" ]; then
-  sleep 3
-  echo "[TEAMMATE] Connect to Teammate Player"
-  TEAMMATE_AGENT_FILE=$MODULE_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
-  echo $TEAMMATE_AGENT_FILE
-  $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
-  --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES &
-fi
+STARTS_WITH_BALL="true"
+STARTS_FIXED_POSITION="true"
+GOALKEEPER_TYPE="dumb_goalkeeper"  # dumb_goalkeeper, good_goalkeeper, helios
+TEAMMATE_TYPE="static_teammate"  # static_teammate, good_teammate, helios
 
-if [ "$GOALKEEPER_TYPE" != "helios" ]; then
-  sleep 3
-  echo "[GOALKEEPER] Connect Goalkeeper Player"
-  GOALKEEPER_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/$GOALKEEPER_TYPE.py
-  echo $GOALKEEPER_AGENT_FILE
-  $PYTHON $GOALKEEPER_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
-  --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
-fi
+NUM_EPISODES_LIST=(5000 2000 2000 1000)
+EPSILONS_LIST=(1 0.6 0.4 0.2)
+
+#for i in {0..3}
+#do
+#  SUB_STAGE=$STAGE.$i
+#  NUM_EPISODES=${NUM_EPISODES_LIST[i]}
+#  EPSILON=${EPSILONS_LIST[i]}
+#
+# # STAGE 1.1: Explore for the first time
+# $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#  --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic \
+#  --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#  --port $PORT --headless >> hfo.log &
+#
+# sleep 2
+# echo "Connect to Main player"
+# OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/explore_player.py
+# $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+# --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
+# --teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
+# --starts_with_ball=$STARTS_WITH_BALL --epsilon=$EPSILON \
+# --starts_fixed_position=$STARTS_FIXED_POSITION --port=$PORT \
+# --dir=$DIR_NAME --stage=$SUB_STAGE &
+#
+# sleep 2
+# echo "[TEAMMATE] Connect to Teammate Player"
+# TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+# echo $TEAMMATE_AGENT_FILE
+# $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
+# --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES &
+#
+# sleep 2
+# echo "[GOALKEEPER] Connect Goalkeeper Player"
+# GOALKEEPER_AGENT_FILE=$AGENTS_DIR/fixed_agents/goalkeeper/$GOALKEEPER_TYPE.py
+# echo $GOALKEEPER_AGENT_FILE
+# $PYTHON $GOALKEEPER_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
+# --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+# trap "kill -TERM -$$" SIGINT
+# wait
+#
+#
+#  # ** STAGE 1.2 **: TRAIN OFFLINE:
+#  TRAIN_SCRIPT=$AGENTS_DIR/offline_plastic_v1/train_offline.py
+#  echo "Start Train"
+#  $PYTHON $TRAIN_SCRIPT --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --stage=$SUB_STAGE &
+#  echo "PLayer connected"
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 1.3 **: TEST:
+#  # TEST_EPISODES=12
+#  CHOOSE_BEST_SUB_MODEL="true"
+#  NUM_SUB_MODELS=$(ls $DIR_NAME/agent_model_$SUB_STAGE* | wc -l)
+#  TEST_EPISODES=12
+#  TOTAL_TEST_EPISODES=$(($NUM_SUB_MODELS * $TEST_EPISODES))
+#  $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#   --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#   --offense-on-ball $((-1))  --trials $TOTAL_TEST_EPISODES --deterministic \
+#   --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#   --port $PORT \
+#   --headless >> hfo.log &
+#  # --no-sync >> hfo.log &
+#
+#  sleep 2
+#  echo "Connect to Main player"
+#  OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/test_player.py
+#  $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#  --num_teammates=$TOTAL_TEAMMATES --num_episodes=$TEST_EPISODES \
+#  --dir=$DIR_NAME --stage=$SUB_STAGE --starts_with_ball=$STARTS_WITH_BALL \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION \
+#  --choose_best_sub_model=$CHOOSE_BEST_SUB_MODEL &
+#
+#  sleep 2
+#  echo "[TEAMMATE] Connect to Teammate Player"
+#  TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+#  echo $TEAMMATE_AGENT_FILE
+#  $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$TOTAL_TEST_EPISODES --port=$PORT \
+#  --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES &
+#
+#  sleep 2
+#  echo "[GOALKEEPER] Connect Goalkeeper Player"
+#  GOALKEEPER_AGENT_FILE=$AGENTS_DIR/fixed_agents/goalkeeper/$GOALKEEPER_TYPE.py
+#  echo $GOALKEEPER_AGENT_FILE
+#  $PYTHON $GOALKEEPER_AGENT_FILE  --num_episodes=$TOTAL_TEST_EPISODES --port=$PORT \
+#  --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#done
+#exit
 
 
-trap "kill -TERM -$$" SIGINT
-wait
+# ************************************* STAGE 2 *******************************
+# Train with a static_teammate, against a dumb_goalkeeper. Starts without ball
+STAGE=2
+echo "** STAGE $STAGE **"
 
+STARTS_WITH_BALL="false"
+STARTS_FIXED_POSITION="true"
+GOALKEEPER_TYPE="dumb_goalkeeper"  # dumb_goalkeeper, good_goalkeeper, helios
+TEAMMATE_TYPE="static_teammate"  # static_teammate, good_teammate, helios
+
+NUM_EPISODES_LIST=(5000 5000 5000)
+EPSILONS_LIST=(0.6 0.4 0.2)
+
+for i in {0..0}
+do
+  SUB_STAGE=$STAGE.$i
+  NUM_EPISODES=${NUM_EPISODES_LIST[i]}
+  EPSILON=${EPSILONS_LIST[i]}
+
+#  # STAGE 2.1: Explore for the first time
+#  $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#   --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#   --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic \
+#   --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#   --port $PORT --headless >> hfo.log &
+#
+#  sleep 2
+#  echo "Connect to Main player"
+#  OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/explore_player.py
+#  $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#  --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
+#  --teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
+#  --starts_with_ball=$STARTS_WITH_BALL --epsilon=$EPSILON \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION --port=$PORT \
+#  --dir=$DIR_NAME --stage=$SUB_STAGE &
+#
+#  sleep 2
+#  echo "[TEAMMATE] Connect to Teammate Player"
+#  TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+#  echo $TEAMMATE_AGENT_FILE
+#  $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
+#  --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES &
+#
+#  sleep 2
+#  echo "[GOALKEEPER] Connect Goalkeeper Player"
+#  GOALKEEPER_AGENT_FILE=$AGENTS_DIR/fixed_agents/goalkeeper/$GOALKEEPER_TYPE.py
+#  echo $GOALKEEPER_AGENT_FILE
+#  $PYTHON $GOALKEEPER_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
+#  --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 2.2 **: TRAIN OFFLINE:
+#  TRAIN_SCRIPT=$AGENTS_DIR/offline_plastic_v1/train_offline.py
+#  echo "Start Train"
+#  $PYTHON $TRAIN_SCRIPT --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --stage=$SUB_STAGE &
+#  echo "PLayer connected"
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 2.3 **: TEST:
+#  CHOOSE_BEST_SUB_MODEL="true"
+#  NUM_SUB_MODELS=$(ls $DIR_NAME/agent_model_$SUB_STAGE.* | wc -l)
+#
+#  for test_idx in $( seq 1 $NUM_SUB_MODELS)
+#  do
+#    TEST_EPISODES=12
+#    echo "[STAGE $STAGE: TEST] $test_idx / $NUM_SUB_MODELS EPISODES"
+#    $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#     --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#     --offense-on-ball $((-1))  --trials $TEST_EPISODES --deterministic \
+#     --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#     --port $PORT \
+#     --headless >> hfo.log &
+#    # --no-sync >> hfo.log &
+#
+#    sleep 3
+#    OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/test_player.py
+#    $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --num_episodes=$TEST_EPISODES \
+#    --dir=$DIR_NAME --stage=$SUB_STAGE --starts_with_ball=$STARTS_WITH_BALL \
+#    --starts_fixed_position=$STARTS_FIXED_POSITION --test_iter=$test_idx \
+#    --choose_best_sub_model=$CHOOSE_BEST_SUB_MODEL &
+#
+#    sleep 1
+#    TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+#    echo $TEAMMATE_AGENT_FILE
+#    $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$TEST_EPISODES --port=$PORT \
+#    --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES &
+#
+#    sleep 1
+#    GOALKEEPER_AGENT_FILE=$AGENTS_DIR/fixed_agents/goalkeeper/$GOALKEEPER_TYPE.py
+#    echo $GOALKEEPER_AGENT_FILE
+#    $PYTHON $GOALKEEPER_AGENT_FILE  --num_episodes=$TEST_EPISODES --port=$PORT \
+#    --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+#
+#    trap "kill -TERM -$$" SIGINT
+#    wait
+#  done
+#
+done
+
+
+# ************************************* STAGE 3 ********************************
+# Train with a static_teammate, against a good_goalkeeper. Starts without ball
+STAGE=3
+echo "** STAGE $STAGE **"
+
+STARTS_WITH_BALL="false"
+STARTS_FIXED_POSITION="true"
+GOALKEEPER_TYPE="good_goalkeeper"  # dumb_goalkeeper, good_goalkeeper, helios
+TEAMMATE_TYPE="static_teammate"  # static_teammate, good_teammate, helios
+
+NUM_EPISODES_LIST=(5000 5000 5000)
+EPSILONS_LIST=(0.6 0.4 0.2)
+
+#for i in {0..2}
+#do
+#  SUB_STAGE=$STAGE.$i
+#  NUM_EPISODES=${NUM_EPISODES_LIST[i]}
+#  EPSILON=${EPSILONS_LIST[i]}
+#
+#  # STAGE 3.1: Explore for the first time
+#  $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#   --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#   --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic \
+#   --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#   --port $PORT --headless >> hfo.log &
+#
+#  sleep 2
+#  echo "Connect to Main player"
+#  OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/explore_player.py
+#  $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#  --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
+#  --teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
+#  --starts_with_ball=$STARTS_WITH_BALL --epsilon=$EPSILON \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION --port=$PORT \
+#  --dir=$DIR_NAME --stage=$SUB_STAGE &
+#
+#  sleep 2
+#  echo "[TEAMMATE] Connect to Teammate Player"
+#  TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+#  echo $TEAMMATE_AGENT_FILE
+#  $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
+#  --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES &
+#
+#  sleep 2
+#  echo "[GOALKEEPER] Connect Goalkeeper Player"
+#  GOALKEEPER_AGENT_FILE=$AGENTS_DIR/fixed_agents/goalkeeper/$GOALKEEPER_TYPE.py
+#  echo $GOALKEEPER_AGENT_FILE
+#  $PYTHON $GOALKEEPER_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
+#  --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 3.2 **: TRAIN OFFLINE:
+#  TRAIN_SCRIPT=$AGENTS_DIR/offline_plastic_v1/train_offline.py
+#  echo "Start Train"
+#  $PYTHON $TRAIN_SCRIPT --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --stage=$SUB_STAGE &
+#  echo "PLayer connected"
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 3.3 **: TEST:
+#  # TEST_EPISODES=12
+#  CHOOSE_BEST_SUB_MODEL="true"
+#  NUM_SUB_MODELS=$(ls $DIR_NAME/agent_model_$SUB_STAGE.* | wc -l)
+#
+#  for test_idx in $( seq 1 $NUM_SUB_MODELS)
+#  do
+#    TEST_EPISODES=12
+#    echo "[STAGE 3: TEST] $test_idx / $NUM_SUB_MODELS EPISODES"
+#    $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#     --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#     --offense-on-ball $((-1))  --trials $TEST_EPISODES --deterministic \
+#     --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#     --port $PORT \
+#     --headless >> hfo.log &
+#    # --no-sync >> hfo.log &
+#
+#    sleep 3
+#    OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/test_player.py
+#    $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --num_episodes=$TEST_EPISODES \
+#    --dir=$DIR_NAME --stage=$SUB_STAGE --starts_with_ball=$STARTS_WITH_BALL \
+#    --starts_fixed_position=$STARTS_FIXED_POSITION --test_iter=$test_idx \
+#    --choose_best_sub_model=$CHOOSE_BEST_SUB_MODEL &
+#
+#    sleep 1
+#    TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+#    echo $TEAMMATE_AGENT_FILE
+#    $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$TEST_EPISODES --port=$PORT \
+#    --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES &
+#
+#    sleep 1
+#    GOALKEEPER_AGENT_FILE=$AGENTS_DIR/fixed_agents/goalkeeper/$GOALKEEPER_TYPE.py
+#    echo $GOALKEEPER_AGENT_FILE
+#    $PYTHON $GOALKEEPER_AGENT_FILE  --num_episodes=$TEST_EPISODES --port=$PORT \
+#    --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+#
+#    trap "kill -TERM -$$" SIGINT
+#    wait
+#  done
+#
+#done
+
+
+
+# ************************************* STAGE 4 ********************************
+# Train with a good_teammate, against a good_goalkeeper
+STAGE=4
+echo "** STAGE $STAGE **"
+
+STARTS_WITH_BALL="false"
+STARTS_FIXED_POSITION="true"
+TEAMMATE_WAIT_FOR_AGENT="true"
+GOALKEEPER_TYPE="good_goalkeeper"  # dumb_goalkeeper, good_goalkeeper, helios
+TEAMMATE_TYPE="helios_teammate"  # static_teammate, good_teammate, helios
+
+NUM_EPISODES_LIST=(5000 5000 5000)
+EPSILONS_LIST=(0.8 0.6 0.4 0.2)
+
+#for i in {0..2}
+#do
+#  SUB_STAGE=$STAGE.$i
+#  NUM_EPISODES=${NUM_EPISODES_LIST[i]}
+#  EPSILON=${EPSILONS_LIST[i]}
+#
+#  # STAGE 4.1: Explore for the first time
+#  $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#   --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#   --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic \
+#   --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#   --port $PORT --headless >> hfo.log &
+#
+#  sleep 2
+#  echo "Connect to Main player"
+#  OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/explore_player.py
+#  $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#  --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
+#  --teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
+#  --starts_with_ball=$STARTS_WITH_BALL --epsilon=$EPSILON \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION --port=$PORT \
+#  --dir=$DIR_NAME --stage=$SUB_STAGE &
+#
+#  sleep 2
+#  echo "[TEAMMATE] Connect to Teammate Player"
+#  TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+#  echo $TEAMMATE_AGENT_FILE
+#  $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
+#  --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION \
+#  --wait_for_teammate=$TEAMMATE_WAIT_FOR_AGENT &
+#
+#  sleep 2
+#  echo "[GOALKEEPER] Connect Goalkeeper Player"
+#  GOALKEEPER_AGENT_FILE=$AGENTS_DIR/fixed_agents/goalkeeper/$GOALKEEPER_TYPE.py
+#  echo $GOALKEEPER_AGENT_FILE
+#  $PYTHON $GOALKEEPER_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
+#  --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 4.2 **: TRAIN OFFLINE:
+#  TRAIN_SCRIPT=$AGENTS_DIR/offline_plastic_v1/train_offline.py
+#  echo "Start Train"
+#  $PYTHON $TRAIN_SCRIPT --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --stage=$SUB_STAGE &
+#  echo "PLayer connected"
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 4.3 **: TEST:
+#  CHOOSE_BEST_SUB_MODEL="true"
+#  NUM_SUB_MODELS=$(ls $DIR_NAME/agent_model_$SUB_STAGE.* | wc -l)
+#
+#  for test_idx in $( seq 1 $NUM_SUB_MODELS)
+#  do
+#    TEST_EPISODES=12
+#    echo "[STAGE $STAGE: TEST] $test_idx / $NUM_SUB_MODELS EPISODES"
+#    $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#     --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#     --offense-on-ball $((-1))  --trials $TEST_EPISODES --deterministic \
+#     --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#     --port $PORT \
+#     --headless >> hfo.log &
+#    # --no-sync >> hfo.log &
+#
+#    sleep 3
+#    OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/test_player.py
+#    $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --num_episodes=$TEST_EPISODES \
+#    --dir=$DIR_NAME --stage=$SUB_STAGE --starts_with_ball=$STARTS_WITH_BALL \
+#    --starts_fixed_position=$STARTS_FIXED_POSITION --test_iter=$test_idx \
+#    --choose_best_sub_model=$CHOOSE_BEST_SUB_MODEL &
+#
+#    sleep 1
+#    TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+#    echo $TEAMMATE_AGENT_FILE
+#    $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$TEST_EPISODES --port=$PORT \
+#    --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES \
+#    --starts_fixed_position=$STARTS_FIXED_POSITION \
+#    --wait_for_teammate=$TEAMMATE_WAIT_FOR_AGENT &
+#
+#    sleep 1
+#    GOALKEEPER_AGENT_FILE=$AGENTS_DIR/fixed_agents/goalkeeper/$GOALKEEPER_TYPE.py
+#    echo $GOALKEEPER_AGENT_FILE
+#    $PYTHON $GOALKEEPER_AGENT_FILE  --num_episodes=$TEST_EPISODES --port=$PORT \
+#    --num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
+#
+#    trap "kill -TERM -$$" SIGINT
+#    wait
+#  done
+#
+#done
+
+
+# ************************************* STAGE 5 ********************************
+# Train with a good_teammate, against 1 helios defenses
+STAGE=5
+echo "** STAGE $STAGE **"
+
+NUM_DEFENSES=0
+NUM_DEFENSES_NPCS=1
+TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
+TOTAL_OPPONENTS=$TOTAL_DEFENSES
+echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
+
+STARTS_WITH_BALL="false"
+STARTS_FIXED_POSITION="true"
+TEAMMATE_WAIT_FOR_AGENT="true"
+GOALKEEPER_TYPE="good_goalkeeper"  # dumb_goalkeeper, good_goalkeeper, helios
+TEAMMATE_TYPE="helios_teammate"  # static_teammate, good_teammate, helios
+
+NUM_EPISODES_LIST=(10000 5000 5000 5000 5000 5000)
+EPSILONS_LIST=(0.8 0.7 0.5 0.3 0.2 0.1)
+
+#for i in {0..5}
+#do
+#  SUB_STAGE=$STAGE.$i
+#  NUM_EPISODES=${NUM_EPISODES_LIST[i]}
+#  EPSILON=${EPSILONS_LIST[i]}
+#
+#  # STAGE 5.1: Explore for the first time
+#  $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#   --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#   --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic \
+#   --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#   --port $PORT --headless >> hfo.log &
+#
+#  sleep 2
+#  echo "Connect to Main player"
+#  OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/explore_player.py
+#  $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#  --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
+#  --teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
+#  --starts_with_ball=$STARTS_WITH_BALL --epsilon=$EPSILON \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION --port=$PORT \
+#  --dir=$DIR_NAME --stage=$SUB_STAGE &
+#
+#  sleep 2
+#  echo "[TEAMMATE] Connect to Teammate Player"
+#  TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+#  echo $TEAMMATE_AGENT_FILE
+#  $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$NUM_EPISODES --port=$PORT \
+#  --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION \
+#  --wait_for_teammate=$TEAMMATE_WAIT_FOR_AGENT &
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#  # ** STAGE 5.2 **: TRAIN OFFLINE:
+#  TRAIN_SCRIPT=$AGENTS_DIR/offline_plastic_v1/train_offline.py
+#  echo "Start Train"
+#  $PYTHON $TRAIN_SCRIPT --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --stage=$SUB_STAGE &
+#  echo "PLayer connected"
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 5.3 **: TEST:
+#  CHOOSE_BEST_SUB_MODEL="true"
+#  NUM_SUB_MODELS=$(ls $DIR_NAME/agent_model_$SUB_STAGE.* | wc -l)
+#
+#  for test_idx in $( seq 1 $NUM_SUB_MODELS)
+#  do
+#    TEST_EPISODES=12
+#    echo "[STAGE $STAGE: TEST] $test_idx / $NUM_SUB_MODELS Models"
+#    $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#     --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#     --offense-on-ball $((-1))  --trials $TEST_EPISODES --deterministic \
+#     --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#     --port $PORT \
+#     --no-sync >> hfo.log &
+#    # >> hfo.log &
+#    # --headless >> hfo.log &
+#
+#    sleep 3
+#    OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/test_player.py
+#    $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --num_episodes=$TEST_EPISODES \
+#    --dir=$DIR_NAME --stage=$SUB_STAGE --starts_with_ball=$STARTS_WITH_BALL \
+#    --starts_fixed_position=$STARTS_FIXED_POSITION --test_iter=$test_idx \
+#    --choose_best_sub_model=$CHOOSE_BEST_SUB_MODEL &
+#
+#    sleep 1
+#    TEAMMATE_AGENT_FILE=$AGENTS_DIR/fixed_agents/fixed_teammate/$TEAMMATE_TYPE.py
+#    echo $TEAMMATE_AGENT_FILE
+#    $PYTHON $TEAMMATE_AGENT_FILE  --num_episodes=$TEST_EPISODES --port=$PORT \
+#    --num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES \
+#    --starts_fixed_position=$STARTS_FIXED_POSITION \
+#    --wait_for_teammate=$TEAMMATE_WAIT_FOR_AGENT &
+#
+#    trap "kill -TERM -$$" SIGINT
+#    wait
+#  done
+#
+#done
+#exit
+
+
+# ************************************* STAGE 6 ********************************
+# Train with a helios teammate, against 1 helios defenses
+STAGE=6
+echo "** STAGE $STAGE **"
+
+NUM_DEFENSES=0
+NUM_DEFENSES_NPCS=1
+TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
+TOTAL_OPPONENTS=$TOTAL_DEFENSES
+echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
+
+NUM_OFFENSES=1
+NUM_OFFENSES_NPCS=1
+TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
+TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
+echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
+
+STARTS_WITH_BALL="false"
+STARTS_FIXED_POSITION="false"
+TEAMMATE_WAIT_FOR_AGENT="false"
+GOALKEEPER_TYPE="helios"  # dumb_goalkeeper, good_goalkeeper, helios
+TEAMMATE_TYPE="helios"  # static_teammate, good_teammate, helios
+
+NUM_EPISODES_LIST=(5000 5000 5000 5000 5000 5000)
+EPSILONS_LIST=(0.4 0.2 0.1 0.1 0.1 0.1)
+
+#for i in {3..5}
+#do
+#  SUB_STAGE=$STAGE.$i
+#  NUM_EPISODES=${NUM_EPISODES_LIST[i]}
+#  EPSILON=${EPSILONS_LIST[i]}
+#
+#  # STAGE 6.1: Explore for the first time
+#  $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#   --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#   --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic \
+#   --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#   --port $PORT --headless >> hfo.log &
+#
+#  sleep 2
+#  echo "Connect to Main player"
+#  OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/explore_player.py
+#  $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#  --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
+#  --teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
+#  --starts_with_ball=$STARTS_WITH_BALL --epsilon=$EPSILON \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION --port=$PORT \
+#  --dir=$DIR_NAME --stage=$SUB_STAGE &
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#  # ** STAGE 6.2 **: TRAIN OFFLINE:
+#  TRAIN_SCRIPT=$AGENTS_DIR/offline_plastic_v1/train_offline.py
+#  echo "Start Train"
+#  $PYTHON $TRAIN_SCRIPT --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --stage=$SUB_STAGE &
+#  echo "PLayer connected"
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 6.3 **: TEST:
+#  CHOOSE_BEST_SUB_MODEL="true"
+#  NUM_SUB_MODELS=$(ls $DIR_NAME/agent_model_$SUB_STAGE.* | wc -l)
+#
+#  for test_idx in $( seq 1 $NUM_SUB_MODELS)
+#  do
+#    TEST_EPISODES=12
+#    echo "[STAGE $STAGE: TEST] $test_idx / $NUM_SUB_MODELS Models"
+#    $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#     --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#     --offense-on-ball $((-1))  --trials $TEST_EPISODES --deterministic \
+#     --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#     --port $PORT \
+#     --headless >> hfo.log &
+#    # --no-sync >> hfo.log &
+#    # >> hfo.log &
+#
+#    sleep 3
+#    OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/test_player.py
+#    $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --num_episodes=$TEST_EPISODES \
+#    --dir=$DIR_NAME --stage=$SUB_STAGE --starts_with_ball=$STARTS_WITH_BALL \
+#    --starts_fixed_position=$STARTS_FIXED_POSITION --test_iter=$test_idx \
+#    --choose_best_sub_model=$CHOOSE_BEST_SUB_MODEL &
+#
+#    trap "kill -TERM -$$" SIGINT
+#    wait
+#  done
+#done
+
+
+# ************************************* STAGE 7 ********************************
+# Train with an helios teammate, against 2 helios defenses
+STAGE=7
+echo "** STAGE $STAGE **"
+
+NUM_DEFENSES=0
+NUM_DEFENSES_NPCS=2
+TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
+TOTAL_OPPONENTS=$TOTAL_DEFENSES
+echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
+
+NUM_OFFENSES=1
+NUM_OFFENSES_NPCS=1
+TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
+TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
+echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
+
+STARTS_WITH_BALL="false"
+STARTS_FIXED_POSITION="false"
+GOALKEEPER_TYPE="helios"  # dumb_goalkeeper, good_goalkeeper, helios
+TEAMMATE_TYPE="helios"  # static_teammate, good_teammate, helios
+
+NUM_EPISODES_LIST=(5000 5000 5000 5000 5000 5000 5000 5000 5000 5000)
+EPSILONS_LIST=(0.4 0.3 0.2 0.1 0.1 0.1 0.1 0.1 0.05 0.05)
+
+#for i in {0..9}
+#do
+#  SUB_STAGE=$STAGE.$i
+#  NUM_EPISODES=${NUM_EPISODES_LIST[i]}
+#  EPSILON=${EPSILONS_LIST[i]}
+#
+#  # STAGE 7.1: Explore for the first time
+#  $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#   --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#   --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic \
+#   --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#   --port $PORT --headless >> hfo.log &
+#
+#  sleep 2
+#  echo "Connect to Main player"
+#  OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/explore_player.py
+#  $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#  --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
+#  --teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
+#  --starts_with_ball=$STARTS_WITH_BALL --epsilon=$EPSILON \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION --port=$PORT \
+#  --dir=$DIR_NAME --stage=$SUB_STAGE &
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#  # ** STAGE 7.2 **: TRAIN OFFLINE:
+#  TRAIN_SCRIPT=$AGENTS_DIR/offline_plastic_v1/train_offline.py
+#  echo "Start Train"
+#  $PYTHON $TRAIN_SCRIPT --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --stage=$SUB_STAGE &
+#  echo "PLayer connected"
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 7.3 **: TEST:
+#  CHOOSE_BEST_SUB_MODEL="true"
+#  NUM_SUB_MODELS=$(ls $DIR_NAME/agent_model_$SUB_STAGE.* | wc -l)
+#
+#  for test_idx in $( seq 1 $NUM_SUB_MODELS)
+#  do
+#    TEST_EPISODES=50
+#    echo "[STAGE $STAGE: TEST] $test_idx / $NUM_SUB_MODELS EPISODES"
+#    $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#     --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#     --offense-on-ball $((-1))  --trials $TEST_EPISODES --deterministic \
+#     --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#     --port $PORT \
+#     --headless >> hfo.log &
+#    # --no-sync >> hfo.log &
+#
+#    sleep 3
+#    OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/test_player.py
+#    $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --num_episodes=$TEST_EPISODES \
+#    --dir=$DIR_NAME --stage=$SUB_STAGE --starts_with_ball=$STARTS_WITH_BALL \
+#    --starts_fixed_position=$STARTS_FIXED_POSITION --test_iter=$test_idx \
+#    --choose_best_sub_model=$CHOOSE_BEST_SUB_MODEL &
+#
+#    trap "kill -TERM -$$" SIGINT
+#    wait
+#  done
+#
+#done
+
+
+# ************************************* STAGE 8 ********************************
+# Train with an helios teammate, against 2 helios defenses
+# Neural net 248_248_248
+STAGE=8
+echo "** STAGE $STAGE **"
+
+NUM_DEFENSES=0
+NUM_DEFENSES_NPCS=2
+TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
+TOTAL_OPPONENTS=$TOTAL_DEFENSES
+echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
+
+NUM_OFFENSES=1
+NUM_OFFENSES_NPCS=1
+TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
+TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
+echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
+
+STARTS_WITH_BALL="false"
+STARTS_FIXED_POSITION="false"
+GOALKEEPER_TYPE="helios"  # dumb_goalkeeper, good_goalkeeper, helios
+TEAMMATE_TYPE="helios"  # static_teammate, good_teammate, helios
+
+NUM_EPISODES_LIST=(25000 25000 25000 25000 25000 25000 25000 25000 25000 10000 10000 10000 10000)
+EPSILONS_LIST=(0.3 0.3 0.2 0.15 0.15 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.05)
+
+#for i in {9..12}
+#do
+#  SUB_STAGE=$STAGE.$i
+#  NUM_EPISODES=${NUM_EPISODES_LIST[i]}
+#  EPSILON=${EPSILONS_LIST[i]}
+#
+#  # STAGE 8.1: Explore for the first time
+#  $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#   --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#   --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic \
+#   --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#   --port $PORT --headless >> hfo.log &
+#  sleep 2
+#
+#  echo "Connect to Main player"
+#  OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/explore_player.py
+#  $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#  --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
+#  --teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
+#  --starts_with_ball=$STARTS_WITH_BALL --epsilon=$EPSILON \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION --port=$PORT \
+#  --dir=$DIR_NAME --stage=$SUB_STAGE &
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#  # ** STAGE 8.2 **: TRAIN OFFLINE:
+#  TRAIN_SCRIPT=$AGENTS_DIR/offline_plastic_v1/train_offline.py
+#  echo "Start Train"
+#  $PYTHON $TRAIN_SCRIPT --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --stage=$SUB_STAGE \
+#    --replay_buffer_size=200000 &
+#  echo "PLayer connected"
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+#
+#  # ** STAGE 8.3 **: TEST:
+#  CHOOSE_BEST_SUB_MODEL="true"
+#  NUM_SUB_MODELS=$(ls $DIR_NAME/agent_model_$SUB_STAGE.* | wc -l)
+#
+#  for test_idx in $( seq 1 $NUM_SUB_MODELS)
+#  do
+#    TEST_EPISODES=50
+#    echo "[STAGE $STAGE: TEST] $test_idx / $NUM_SUB_MODELS EPISODES"
+#    $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#     --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#     --offense-on-ball $((-1))  --trials $TEST_EPISODES --deterministic \
+#     --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#     --port $PORT \
+#     --headless >> hfo.log &
+#    # --no-sync >> hfo.log &
+#
+#    sleep 3
+#    OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/test_player.py
+#    $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#    --num_teammates=$TOTAL_TEAMMATES --num_episodes=$TEST_EPISODES \
+#    --dir=$DIR_NAME --stage=$SUB_STAGE --starts_with_ball=$STARTS_WITH_BALL \
+#    --starts_fixed_position=$STARTS_FIXED_POSITION --test_iter=$test_idx \
+#    --choose_best_sub_model=$CHOOSE_BEST_SUB_MODEL &
+#
+#    trap "kill -TERM -$$" SIGINT
+#    wait
+#  done
+#
+#done
+#exit
+
+# ************************************* STAGE 9 ********************************
+# Train with an helios teammate, against 2 helios defenses
+# Neural net 128_128_128
+STAGE=9
+echo "** STAGE $STAGE **"
+
+NUM_DEFENSES=0
+NUM_DEFENSES_NPCS=2
+TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
+TOTAL_OPPONENTS=$TOTAL_DEFENSES
+echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
+
+NUM_OFFENSES=1
+NUM_OFFENSES_NPCS=1
+TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
+TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
+echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
+
+STARTS_WITH_BALL="false"
+STARTS_FIXED_POSITION="false"
+GOALKEEPER_TYPE="helios"  # dumb_goalkeeper, good_goalkeeper, helios
+TEAMMATE_TYPE="helios"  # static_teammate, good_teammate, helios
+
+NUM_EPISODES_LIST=(25000 25000 )
+EPSILONS_LIST=(0.1 0.1)
+
+for i in {1..1}
+do
+  SUB_STAGE=$STAGE.$i
+  NUM_EPISODES=${NUM_EPISODES_LIST[i]}
+  EPSILON=${EPSILONS_LIST[i]}
+
+#  # STAGE 9.1: Explore for the first time
+#  $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+#   --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+#   --offense-on-ball $((-1))  --trials $NUM_EPISODES --deterministic \
+#   --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+#   --port $PORT --headless >> hfo.log &
+#  sleep 2
+#
+#  echo "Connect to Main player"
+#  OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/explore_player.py
+#  $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+#  --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES \
+#  --teammate_type=$TEAMMATE_TYPE --opponent_type=$GOALKEEPER_TYPE \
+#  --starts_with_ball=$STARTS_WITH_BALL --epsilon=$EPSILON \
+#  --starts_fixed_position=$STARTS_FIXED_POSITION --port=$PORT \
+#  --dir=$DIR_NAME --stage=$SUB_STAGE &
+#
+#  trap "kill -TERM -$$" SIGINT
+#  wait
+#
+  # ** STAGE 9.2 **: TRAIN OFFLINE:
+  TRAIN_SCRIPT=$AGENTS_DIR/offline_plastic_v1/train_offline.py
+  echo "Start Train"
+  $PYTHON $TRAIN_SCRIPT --num_opponents=$TOTAL_OPPONENTS \
+    --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --stage=$SUB_STAGE \
+    --replay_buffer_size=2000000 --save_all="true" &
+  echo "PLayer connected"
+
+  trap "kill -TERM -$$" SIGINT
+  wait
+
+
+  # ** STAGE 9.3 **: TEST:
+  CHOOSE_BEST_SUB_MODEL="true"
+  NUM_SUB_MODELS=$(ls $DIR_NAME/agent_model_$SUB_STAGE.* | wc -l)
+
+  for test_idx in $( seq 1 $NUM_SUB_MODELS)
+  do
+    TEST_EPISODES=100
+    echo "[STAGE $STAGE: TEST] $test_idx / $NUM_SUB_MODELS EPISODES"
+    $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
+     --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
+     --offense-on-ball $((-1))  --trials $TEST_EPISODES --deterministic \
+     --fullstate --no-logging --frames-per-trial 500 --untouched-time 300 \
+     --port $PORT \
+     --headless >> hfo.log &
+    # --no-sync >> hfo.log &
+
+    sleep 3
+    OFFENSE_AGENT_FILE=$AGENTS_DIR/offline_plastic_v1/test_player.py
+    $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
+    --num_teammates=$TOTAL_TEAMMATES --num_episodes=$TEST_EPISODES \
+    --dir=$DIR_NAME --stage=$SUB_STAGE --starts_with_ball=$STARTS_WITH_BALL \
+    --starts_fixed_position=$STARTS_FIXED_POSITION --test_iter=$test_idx \
+    --choose_best_sub_model=$CHOOSE_BEST_SUB_MODEL &
+
+    trap "kill -TERM -$$" SIGINT
+    wait
+  done
+
+done
+exit

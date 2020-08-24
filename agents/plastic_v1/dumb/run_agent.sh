@@ -12,16 +12,17 @@ HFO=$BASE_DIR/bin/HFO
 PYTHON=$BASE_DIR/venv/bin/python
 GOALKEEPER_DIR=$BASE_DIR/matias_hfo/agents/fixed_agents/goalkeeper
 TEAMMATES_DIR=$BASE_DIR/matias_hfo/agents/fixed_agents/fixed_teammate
-AGENTS_DIR=$BASE_DIR/matias_hfo/agents/dqn_v1
+AGENTS_DIR=$BASE_DIR/matias_hfo/agents/plastic_v1
 
 # Agents Files:
-# DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/player_agent.py
+# DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/good_teammate.py
 DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/goalkeeper_v2.py
 STATIC_AGENT_FILE=$TEAMMATES_DIR/static_agent.py
 OFFENSE_AGENT_FILE=$AGENTS_DIR/dumb/test_agent.py
+# OFFENSE_AGENT_FILE=$AGENTS_DIR/dumb/dumb_player.py
 
 # Train config:
-NUM_EPISODES=6
+NUM_EPISODES=18
 
 NUM_DEFENSES=1
 NUM_DEFENSES_NPCS=0
@@ -37,14 +38,15 @@ echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
  --defense-agents $NUM_DEFENSES --defense-npcs $NUM_DEFENSES_NPCS \
- --offense-on-ball 7  --trials $NUM_EPISODES --deterministic --fullstate \
- --no-logging --frames-per-trial 300 --untouched-time 60 --port $PORT\
+ --offense-on-ball -1  --trials $NUM_EPISODES --deterministic --fullstate \
+ --no-logging --frames-per-trial 200 --untouched-time 100 --port $PORT\
  --no-sync >> hfo.log &
 # --headless >> hfo.log &
 
 sleep 2
 echo "Connect to Main player"
-$PYTHON $OFFENSE_AGENT_FILE  --num_games=$NUM_EPISODES --port=$PORT &
+$PYTHON $OFFENSE_AGENT_FILE --num_opponents=$TOTAL_OPPONENTS --port=$PORT \
+--num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_EPISODES &
 
 sleep 2
 echo "Connect to Static player"

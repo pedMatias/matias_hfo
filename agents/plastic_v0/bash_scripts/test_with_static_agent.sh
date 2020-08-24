@@ -12,9 +12,9 @@ MODULE_DIR=$BASE_DIR/matias_hfo/agents
 DATA_DIR=$BASE_DIR/matias_hfo/data
 
 # Test config:
-OFFENSE_AGENT_FILE=$MODULE_DIR/dqn_v1/test.py
+OFFENSE_AGENT_FILE=$MODULE_DIR/plastic_v0/dqn_test.py
 # Agent Model:
-MODEL=/home/matias/Desktop/HFO/matias_hfo/data/new_dqn_101500ep_1op_2020-06-09_00:41:00/agent_model_2
+MODEL=/home/matias/Desktop/HFO/matias_hfo/data/new_dqn_50600ep_1op_2020-06-11_18:44:00/agent_model
 
 NUM_EPISODES=10
 
@@ -31,7 +31,7 @@ TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
 DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/goalkeeper_v2.py
-# DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/player_agent.py
+# DEFENSE_AGENT_FILE=$MODULE_DIR/fixed_agents/goalkeeper/good_teammate.py
 TEAMMATE_AGENT_FILE=$MODULE_DIR/fixed_agents/fixed_teammate/static_agent.py
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \

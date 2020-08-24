@@ -15,7 +15,7 @@ TEAMMATES_DIR=$BASE_DIR/matias_hfo/agents/fixed_agents/fixed_teammate
 AGENTS_DIR=$BASE_DIR/matias_hfo/agents/dqn_v1
 
 # Agents Files:
-# DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/player_agent.py
+# DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/good_teammate.py
 DEFENSE_AGENT_FILE=$GOALKEEPER_DIR/goalkeeper_v2.py
 STATIC_AGENT_FILE=$TEAMMATES_DIR/static_agent.py
 OFFENSE_AGENT_FILE=$AGENTS_DIR/dumb/test_agent.py

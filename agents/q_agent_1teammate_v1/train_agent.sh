@@ -28,8 +28,9 @@ TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
-OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_1teammate_v1/train_player.py
-DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/player_agent.py
+OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/q_agent_1teammate_v1/train_player_w_static.py
+# DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/good_teammate.py
+DEFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/goalkeeper/goalkeeper_v2.py
 STATIC_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_teammate/static_agent.py
 
 $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
@@ -44,19 +45,19 @@ sleep 2
 echo "Connect to Main player"
 $PYTHON $OFFENSE_AGENT_FILE  --num_opponents=$TOTAL_OPPONENTS \
 --num_teammates=$TOTAL_TEAMMATES --num_train_ep=$NUM_TRAIN_EP \
---num_test_ep=$NUM_TEST_EP --num_repetitions=$NUM_REPETITIONS >> agent.log &
+--num_test_ep=$NUM_TEST_EP --num_repetitions=$NUM_REPETITIONS
 echo "PLayer connected"
 
 sleep 2
 echo "Connect to Static player"
 $PYTHON $STATIC_AGENT_FILE  --num_episodes=$NUM_EPISODES \
---num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES >> teammate.log &
+--num_opponents=$TOTAL_OPPONENTS --num_teammates=$TOTAL_TEAMMATES
 echo "PLayer connected"
 
 sleep 2
 echo "Connect Defense Player"
 $PYTHON $DEFENSE_AGENT_FILE  --num_episodes=$NUM_EPISODES \
---num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) >> defense.log &
+--num_offenses=$TOTAL_OFFENSES --num_defenses=$(($TOTAL_DEFENSES-1)) &
 
 # .py &
 # The magic line

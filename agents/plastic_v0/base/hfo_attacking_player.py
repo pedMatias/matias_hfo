@@ -23,6 +23,16 @@ class HFOAttackingPlayer(object):
         self.episode = 0
         self.num_steps = 0
         self.status = IN_GAME
+        
+    def connect_to_server(self):
+        """ Establish connection with HFO server """
+        self.hfo.connectToServer(
+            feature_set=HIGH_LEVEL_FEATURE_SET,
+            config_dir=self.config_dir,
+            server_port=self.port,
+            server_addr=self.server_addr,
+            team_name='base_left',
+            play_goalie=False)
     
     def reset(self) -> list:
         self.status = IN_GAME
@@ -30,44 +40,17 @@ class HFOAttackingPlayer(object):
         self.num_steps = 0
         return self.hfo.getState()
     
-    def get_state(self):
-        # TODO deprecated
-        return self.hfo.getState()
-    
-    def get_observation_array(self):
+    def get_observation(self):
         return self.hfo.getState()
 
-    def connect_to_server(self):
-        """ Establish connection with HFO server """
-        self.hfo.connectToServer(
-            HIGH_LEVEL_FEATURE_SET,
-            self.config_dir,
-            self.port,
-            self.server_addr,
-            team_name='base_left',
-            play_goalie=False)
-
-    def step(self, hfo_action, has_ball: bool, filter=True) -> (int, list):
+    def step(self, hfo_action) -> (int, list):
         """
         Method that serves as an interface between a script controlling the
         agent and the environment_features. Method returns the current status
         of the episode and nextState
         @param hfo_action: [int, tuple]
-        @param has_ball:
-        @param filter:
         """
-        if filter:
-            if type(hfo_action) is tuple:
-                action = hfo_action[0]
-                params = hfo_action[1:]
-            else:
-                action = hfo_action
-                params = ()
-            action_args = BaseActions.ActionManager.valid_action(
-                action, has_ball, params)
-        else:
-            action_args = hfo_action
-        self.hfo.act(*action_args)
+        self.hfo.act(*hfo_action)
         self.num_steps += 1
         self.status = self.hfo.step()
         return self.status, self.hfo.getState()

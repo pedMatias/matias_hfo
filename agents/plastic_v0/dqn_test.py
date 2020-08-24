@@ -2,7 +2,7 @@
 # encoding utf-8
 import argparse
 
-from agents.dqn_v1.dqn_player import Player
+from agents.plastic_v0.dqn_player import Player
 
 
 if __name__ == '__main__':

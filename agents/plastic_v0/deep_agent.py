@@ -51,10 +51,11 @@ class DQNAgent(Agent):
 
     def create_model(self, num_features: int, num_actions: int):
         """ model.add(LeakyReLU(alpha=0.1))"""
-        self.model_description = "{}f_32_32_{}a".format(
+        self.model_description = "{}f_32_32_32_{}a".format(
             num_features, num_actions)
         model = Sequential()
         model.add(Dense(32, input_dim=num_features, activation="relu"))
+        model.add(Dense(32, activation="relu"))
         model.add(Dense(32, activation="relu"))
         model.add(Dense(num_actions, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(lr=self.learning_rate))

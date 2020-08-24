@@ -50,7 +50,10 @@ class HFOAttackingPlayer(object):
         of the episode and nextState
         @param hfo_action: [int, tuple]
         """
-        self.hfo.act(*hfo_action)
+        if isinstance(hfo_action, tuple):
+            self.hfo.act(*hfo_action)
+        else:
+            self.hfo.act(hfo_action)
         self.num_steps += 1
         self.status = self.hfo.step()
         return self.status, self.hfo.getState()

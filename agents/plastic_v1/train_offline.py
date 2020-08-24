@@ -48,17 +48,15 @@ if __name__ == '__main__':
     parser.add_argument('--num_opponents', type=int, default=0)
     parser.add_argument('--num_teammates', type=int, default=0)
     parser.add_argument('--dir', type=str, default=None)
-    parser.add_argument('--port', type=int, default=6000)
     
     # Parse Arguments:
     args = parser.parse_args()
     num_team = args.num_teammates
     num_op = args.num_opponents
     directory = args.dir
-    port = args.port
     
     # Start Player:
-    player = Player(num_teammates=num_team, num_opponents=num_op, port=port)
+    player = Player(num_teammates=num_team, num_opponents=num_op)
 
     with open(f"{directory}/learn_buffer", "rb") as fp:  # Unpickling
         train_data = pickle.load(fp)
@@ -67,11 +65,14 @@ if __name__ == '__main__':
           f"{train_data[0]}")
     
     losses = []
-    for i in range(10):
+    for i in range(20):
         # Get a minibatch of random samples from memory replay table
-        loss = player.agent.fit_batch(train_data)
-        print(f"{i}: {loss}")
-        losses += loss
+        loss = player.agent.fit_batch(train_data, verbose=1)
+        player.agent.target_model.set_weights(player.agent.model.get_weights())
+        # Loss:
+        avr_loss = sum(loss) / len(loss)
+        print(f"{i}: Avarage loss {avr_loss}")
+        losses.append(avr_loss)
     
     player.agent.save_model(file_name=directory + "/agent_model")
     print("\n!!!!!!!!! AGENT EXIT !!!!!!!!!!!!\n\n")
