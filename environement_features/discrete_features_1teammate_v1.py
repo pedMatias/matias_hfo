@@ -31,7 +31,7 @@ class DiscreteFeatures1TeammateV1(DiscreteHighLevelFeatures):
         : return: 1 if agent can kick, else return 0.
         :rtype: int
         """
-        return 1 if self.agent.can_kick else 0
+        return 1 if self.agent.able_to_kick else 0
 
     def _position_finder(self):
         """
@@ -157,9 +157,6 @@ class DiscreteFeatures1TeammateV1(DiscreteHighLevelFeatures):
         idx += self.features[4] * size
         size *= len(self.ball_position)
         return int(idx)
-    
-    def has_ball(self, _=None) -> bool:
-        return self.agent.can_kick
     
     def teammate_has_ball(self) -> bool:
         return True if self.features[4] == 1 else False

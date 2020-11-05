@@ -30,7 +30,7 @@ class DiscreteHighLevelFeatures(BaseHighLevelState):
         : return: 1 if agent can kick, else return 0.
         :rtype: int
         """
-        return 1 if self.agent.can_kick else 0
+        return 1 if self.agent.able_to_kick else 0
 
     def _position_finder(self):
         """

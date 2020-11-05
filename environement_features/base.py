@@ -10,12 +10,12 @@ class BaseHighLevelState:
         orientation: float = 0
         ball_x: float = 0
         ball_y: float = 0
-        can_kick: bool = False
+        proximity_op: float = 0
+        goal_opening_angle: float = 0
+        able_to_kick: float = 0
         dist_to_goal: float = 0
         goal_center_angle: float = 0
-        goal_opening_angle: float = 0
-        proximity_op: float = 0
-        last_action_succ: bool = False
+        last_action_succ: float = 0
         stamina: float = 0
         
         def __init__(self, array: list):
@@ -24,44 +24,19 @@ class BaseHighLevelState:
             self.orientation = array[2]
             self.ball_x = array[3]
             self.ball_y = array[4]
-            self.can_kick = self._can_kick_to_bool(array[5])
+            self.able_to_kick = array[5]  # 1=True
             self.dist_to_goal = array[6]
             self.goal_center_angle = array[7]
             self.goal_opening_angle = array[8]
             self.proximity_op = array[9]
-            self.last_action_succ = self._last_action_succ_to_bool(array[-2])
+            self.last_action_succ = array[-2]  # 1=True
             self.stamina = array[-1]
-        
-        def _can_kick_to_bool(self, val: int) -> bool:
-            if val == 1:
-                return True
-            else:
-                return False
-        
-        def _can_kick_to_int(self, val: bool) -> int:
-            if val is True:
-                return 1
-            else:
-                return -1
-        
-        def _last_action_succ_to_bool(self, val: int) -> bool:
-            if val == 1:
-                return True
-            else:
-                return False
-        
-        def _last_action_succ_to_int(self, val: bool) -> int:
-            if val is True:
-                return 1
-            else:
-                return -1
         
         def to_array(self):
             return [self.x_pos, self.y_pos, self.orientation, self.ball_x,
-                    self.ball_y, self._can_kick_to_int(self.can_kick),
-                    self.dist_to_goal, self.goal_center_angle,
-                    self.goal_opening_angle, self.proximity_op,
-                    self._last_action_succ_to_int(self.last_action_succ),
+                    self.ball_y, self.able_to_kick, self.dist_to_goal,
+                    self.goal_center_angle, self.goal_opening_angle,
+                    self.proximity_op, self.last_action_succ,
                     self.stamina]
         
         def len(self):
@@ -156,21 +131,25 @@ class BaseHighLevelState:
         for opponent in self.opponents:
             opponents_array += opponent.to_array()
         return np.array(agent_array + teammates_array + opponents_array)
+    
+    def has_ball(self) -> bool:
+        if self.agent.able_to_kick == 1:
+            return True
+        else:
+            return False
+    
+    def get_pos_tuple(self, round_ndigits: int = -1) -> tuple:
+        """ @return (x axis pos, y axis pos)"""
+        x_pos = self.agent.x_pos.item()
+        y_pos = self.agent.y_pos.item()
+        if round_ndigits >= 0:
+            x_pos = round(x_pos, round_ndigits)
+            x_pos = abs(x_pos) if x_pos == -0.0 else x_pos
+            y_pos = round(y_pos, round_ndigits)
+            y_pos = abs(y_pos) if y_pos == -0.0 else y_pos
+            return x_pos, y_pos
+        else:
+            return x_pos, y_pos
 
-    def get_features(self, obs_arr: list) -> list:
-        """
-        @param obs_arr:
-        @type obs_arr:
-        @return:
-        @rtype:
-        """
-        # TODO
-        self._encapsulate_data(obs_arr)
-        raise NotImplementedError()
-    
-    def get_num_features(self) -> int:
-        raise NotImplementedError()
-    
-    def has_ball(self, obs_arr: list) -> bool:
-        self._encapsulate_data(obs_arr)
-        return self.agent.can_kick
+    def update_features(self, observation: list):
+        return self._encapsulate_data(observation)
