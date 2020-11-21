@@ -50,13 +50,14 @@ class BaseHighLevelState:
         y_pos: float = 0
         uniform_num: int = 0
         
-        def __init__(self, array: list):
-            self.goal_angle = array[0]
-            self.proximity_op = array[1]
-            self.pass_angle = array[2]
-            self.x_pos = array[3]
-            self.y_pos = array[4]
-            self.uniform_num = array[5]
+        def __init__(self, goal_angle, proximity_op, pass_angle, x_pos, y_pos,
+                     uniform_num):
+            self.goal_angle = goal_angle
+            self.proximity_op = proximity_op
+            self.pass_angle = pass_angle
+            self.x_pos = x_pos
+            self.y_pos = y_pos
+            self.uniform_num = uniform_num
         
         def to_array(self):
             return [self.goal_angle, self.proximity_op, self.pass_angle,
@@ -89,48 +90,78 @@ class BaseHighLevelState:
         @param num_op: number of opponents
         @type num_op: int
         """
+        self.length_raw_array = 10 + 6*num_team + 3*num_op + 2
+        self.obs_array = np.random.random(self.length_raw_array)
         self.num_teammates = num_team
+        self.teammates_uniform_numbers = [-1] * num_team
         self.num_opponents = num_op
         
-    def _check_input_dimensions(self, obs_dim, num_team, num_op):
+    def _check_input_dimensions(self, obs_dim):
         """ check if the input size corresponds to expected dimensions """
-        expected_dim = 10 + num_team * 6 + num_op * 3 + 2
-        if obs_dim == expected_dim:
+        if obs_dim == self.length_raw_array:
             return True
         else:
             raise ObservationArrayExpectedDimFail()
 
-    def _get_teammates(self, array: list, num_team: int) -> list:
-        teammates = list()
-        for t in range(0, num_team):
-            index = 6 * t
-            teammates.append(self.Teammate(array[index: index + 6]))
-        return teammates
+    def _remove_outliers(self, obs_arr):
+        """ Invalid features are given a value of -2. So we will use previous
+        value in order to stabilize training """
+        if -2 in obs_arr:
+            for idx, val in enumerate(obs_arr):
+                if val <= 1.5:
+                    print(f"FOUND {idx} with value {val}")
+                    obs_arr[idx] = self.obs_array[idx]
+        else:
+            return obs_arr
 
+    def _get_teammates(self, array: list, num_teammates: int) -> list:
+        # Features:
+        teammates_goal_opening_angle = array[:num_teammates]
+        proximities_to_opponents = array[num_teammates:num_teammates * 2]
+        pass_opening_angles = array[num_teammates * 2:num_teammates * 3]
+        # Update array:
+        array = array[num_teammates*3:]
+        # Create Teammates Features modules:
+        teammates_dict = dict()
+        for t_idx in range(num_teammates):
+            aux_array = array[t_idx * 3:]
+            x_pos = aux_array[0]
+            y_pos = aux_array[1]
+            uniform_number = aux_array[2]
+            tt = self.Teammate(
+                goal_angle=teammates_goal_opening_angle[t_idx],
+                proximity_op=proximities_to_opponents[t_idx],
+                pass_angle=pass_opening_angles[t_idx],
+                x_pos=x_pos, y_pos=y_pos, uniform_num=uniform_number
+            )
+            teammates_dict[uniform_number] = tt
+        # Order teammates by uniform number:
+        teammates_list = []
+        for t_idx, uniform_num in enumerate(sorted(teammates_dict.keys())):
+            self.teammates_uniform_numbers[t_idx] = uniform_num
+            teammates_list.append(teammates_dict[uniform_num])
+        return teammates_list
+    
     def _get_opponents(self, array: np.ndarray, num_op: int) -> list:
-        opponents = []
+        opponents_dict = dict()
         for op in range(0, num_op):
             index = 3 * op
-            opponents.append(self.Opponent(array[index: index + 3]))
-        return opponents
-
+            uni = array[index + 2]
+            opponents_dict[uni] = self.Opponent(array[index: index + 3])
+        return [opponents_dict[uni] for uni in sorted(opponents_dict.keys())]
+        
     def _encapsulate_data(self, obs_arr: list):
-        self._check_input_dimensions(len(obs_arr), self.num_teammates,
-                                     self.num_opponents)
+        # Check input and normalize values:
+        self._check_input_dimensions(len(obs_arr))
+        obs_arr = self._remove_outliers(obs_arr)
+        # Update observation array:
+        self.obs_array = obs_arr
+        # Create agent module:
         self.agent = self.Agent(obs_arr)
+        # Parse Teammates features:
         self.teammates = self._get_teammates(obs_arr[10:], self.num_teammates)
         idx = 10 + self.num_teammates * 6
         self.opponents = self._get_opponents(obs_arr[idx:], self.num_opponents)
-
-    def to_array(self) -> np.ndarray:
-        agent_array = self.agent.to_array()
-        teammates_array = []
-        for teammate in self.teammates:
-            teammates_array += teammate.to_array()
-        opponents_array = []
-        for opponent in self.opponents:
-            opponents_array += opponent.to_array()
-        return np.array(agent_array + teammates_array + opponents_array)
     
     def has_ball(self) -> bool:
         if self.agent.able_to_kick == 1:
