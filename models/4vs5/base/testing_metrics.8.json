@@ -1,0 +1,6 @@
+{
+"0": {"number_episodes": 500, "win_rate": 0.21975806451612903, "avr_touched_ball_rate": 0.51, "avr_passed_ball_rate": 0.96, "avr_scored_goals_rate": 0.07, "exploration_rate": 0}, 
+"1": {"number_episodes": 500, "win_rate": 0.23387096774193547, "avr_touched_ball_rate": 0.48, "avr_passed_ball_rate": 0.27, "avr_scored_goals_rate": 0.17, "exploration_rate": 0}, 
+"2": {"number_episodes": 500, "win_rate": 0.178, "avr_touched_ball_rate": 0.52, "avr_passed_ball_rate": 0.31, "avr_scored_goals_rate": 0.13, "exploration_rate": 0},
+"DQN_LAYERS": {"input": [512, "relu"], "hidden": [[512, "relu"], [512, "relu"]], "output": [null, "linear"]}
+}
