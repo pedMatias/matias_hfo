@@ -204,7 +204,7 @@ class PlasticFeatures(BaseHighLevelState):
         return op_idx, near_coord
     
     def near_opponent(self, dist: float = 0.15) -> bool:
-        if self.agent.proximity_op < (-1 + dist):
+        if self.agent.proximity_op < (-1.0 + dist):
             return True
         else:
             return False

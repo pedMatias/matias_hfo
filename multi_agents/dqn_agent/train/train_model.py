@@ -18,6 +18,7 @@ if __name__ == '__main__':
     parser.add_argument('--team_name', type=str, required=True)
     parser.add_argument('--step', type=int, required=True)
     parser.add_argument('--dir', type=str, required=True)
+    parser.add_argument('--starting_step', type=int, default=0)
     
     # Parse Arguments:
     args = parser.parse_args()
@@ -25,12 +26,14 @@ if __name__ == '__main__':
     num_op = args.num_opponents
     team_name = args.team_name
     step = args.step
+    starting_step = args.starting_step
     directory = args.dir
     
     # Start Trainer:
     trainer = Trainer(num_teammates=num_team, num_opponents=num_op, step=step,
                       directory=directory)
-    trainer.load_experience_from_dir(clean_learn_buffer=True, verbose=True)
+    trainer.load_experience_from_dir(clean_learn_buffer=True, verbose=True,
+                                     starting_step=starting_step)
     metrics: TrainMetrics = trainer.train_model(verbose=True)
 
     metrics_file = f"train_metrics.{step}.json"

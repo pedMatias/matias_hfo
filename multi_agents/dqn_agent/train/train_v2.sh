@@ -28,21 +28,21 @@ echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
 # killall -9 rcssserver
 # "gliders" "helios" "aut" "axiom" "cyrus"
-PORT=6000
+PORT=6100
 GAME_SET_UP="4vs5"
-TEAMS_NAMES=("aut" "axiom" "cyrus")
-# TEAMS_NAMES=("helios" "gliders")
-for i in {0..2}
+TEAMS_NAMES=("axiom")
+for i in {0..0}
 do
   # *********************************  TRAIN ***********************************
   TEAM_NAME=${TEAMS_NAMES[i]}
   DIR_NAME="${MODELS_DIR}/${GAME_SET_UP}/${TEAM_NAME}"
 
   BASE_MODEL="${DIR_NAME}/base.model"
-  NUM_TEST_EPISODES=1000
-  NUM_EPISODES_LIST=(0 12500 12500 12500 12500 12500 12500 12500 12500)
-  EPSILONS_LIST=(1. 0.3 0.25 0.2 0.15 0.1 0.1 0.05 0.05)
-  for i in {1..8}
+  NUM_TEST_EPISODES=500
+  NUM_EPISODES_LIST=(0 12500 12500 12500 12500 12500 12500 12500 12500 1)
+  EPSILONS_LIST=(1. 0.3 0.25 0.2 0.15 0.1 0.1 0.05 0.05 0.01)
+  STARTING_STEP=4
+  for i in {8..8}
   do
     STEP=$i
     NUM_EPISODES=${NUM_EPISODES_LIST[i]}
@@ -73,15 +73,15 @@ do
 #
 #    trap "kill -TERM -$$" SIGINT
 #    wait
-
-    # ******************* STAGE 2: Train offline *******************
-    echo "TRAIN ${STEP}: ${NUM_EPISODES} episodes; ${EPSILON} epsilon;"
-    $PYTHON $TRAIN_FILE --num_opponents=$TOTAL_OPPONENTS \
-      --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --step=$STEP \
-      --team_name=$TEAM_NAME &
-
-    trap "kill -TERM -$$" SIGINT
-    wait
+#
+#    # ******************* STAGE 2: Train offline *******************
+#    echo "TRAIN ${STEP}: ${NUM_EPISODES} episodes; ${EPSILON} epsilon;"
+#    $PYTHON $TRAIN_FILE --num_opponents=$TOTAL_OPPONENTS \
+#      --num_teammates=$TOTAL_TEAMMATES --dir=$DIR_NAME --step=$STEP \
+#      --team_name=$TEAM_NAME --starting_step=$STARTING_STEP &
+#
+#    trap "kill -TERM -$$" SIGINT
+#    wait
 
     # ******************* STAGE 3: Test *******************
     MODE="testing"
@@ -89,7 +89,7 @@ do
     MODEL_BASE="${DIR_NAME}/${STEP}.model"
     NUM_SUB_MODELS=$(( $(ls $MODEL_BASE.* | wc -l) - 1 ))
 
-    for TEST_IDX in $( seq 0 $NUM_SUB_MODELS)
+    for TEST_IDX in $( seq 1 $NUM_SUB_MODELS)
       do
 
       echo "[TEST: ${TEST_IDX}/${NUM_SUB_MODELS}] ${NUM_TEST_EPISODES} episodes"

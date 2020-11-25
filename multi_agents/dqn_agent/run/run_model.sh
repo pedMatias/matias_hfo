@@ -1,8 +1,6 @@
 #!/bin/bash
 # killall -9 rcssserver
 
-PORT=6200
-
 BASE_DIR=/home/matias/Desktop/HFO
 HFO=$BASE_DIR/bin/HFO
 PYTHON=$BASE_DIR/venv/bin/python
@@ -34,10 +32,13 @@ NUM_TEST_EPISODES=10
 
 PLAYER_FILE=$AGENTS_DIR/dqn_agent/run/run_player.py
 
+PORT=6600
+VERBOSE="true"
+EPSILON=0.01
 MODE="testing"
 GAME_SET_UP="${TOTAL_OFFENSES}vs${TOTAL_DEFENSES}"
-TEAMMATE_NAME="base"  # "aut", "axiom", "cyrus", "gliders", "helios", "yushan"
-MODEL_FILE="${MODELS_DIR}/${GAME_SET_UP}/${TEAMMATE_NAME}/8.model.2"
+TEAMMATE_NAME="helios"  # "aut", "axiom", "cyrus", "gliders", "helios", "yushan"
+MODEL_FILE="${MODELS_DIR}/${GAME_SET_UP}/${TEAMMATE_NAME}/7.model"
 # MODEL_FILE="${MODELS_DIR}/${GAME_SET_UP}/${TEAMMATE_NAME}/0.model.2"
 # MODEL_FILE=${BASE_MODEL}
 
@@ -59,7 +60,7 @@ $PYTHON $PLAYER_FILE --mode=$MODE --num_opponents=$TOTAL_OPPONENTS \
 --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_TEST_EPISODES \
 --step=$STEP --dir=$DIR_NAME --port=$PORT \
 --no_save=$NO_SAVE --team_name=$TEAMMATE_NAME --model_file=$MODEL_FILE \
---epsilon=0.01 &  # 2> /dev/null &
+--epsilon=$EPSILON --verbose=$VERBOSE &  # 2> /dev/null &
 
 trap "kill -TERM -$$" SIGINT
 wait

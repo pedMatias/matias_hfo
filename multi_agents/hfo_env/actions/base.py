@@ -15,9 +15,9 @@ class Actions:
     ACTIONS_WITH_BALL = ["SHOOT", "SHORT_DRIBBLE", "LONG_DRIBBLE"]
     
     # Movement steps:
-    N_SHORT_DRIBBLE_STEPS = 2
-    N_LONG_DRIBBLE_STEPS = 10
-    N_GO_TO_BALL_STEPS = 10
+    N_SHORT_DRIBBLE_STEPS = 4
+    N_LONG_DRIBBLE_STEPS = 12
+    N_GO_TO_BALL_STEPS = 8
     N_MOVE_STEPS = 4
     N_NOOP_STEPS = 2
     

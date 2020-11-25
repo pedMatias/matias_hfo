@@ -1,7 +1,6 @@
 #!/bin/bash
-killall -9 rcssserver
+# killall -9 rcssserver
 
-PORT=6000
 
 BASE_DIR=/home/matias/Desktop/HFO
 HFO=$BASE_DIR/bin/HFO
@@ -26,10 +25,11 @@ TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
 
+PORT=6010
 GAME_SET_UP="${TOTAL_OFFENSES}vs${TOTAL_DEFENSES}"
 AGENT_TYPE="plastic_agent"
-MEMORY_BOUNDED="false"
-HISTORY_LEN=1
+MEMORY_BOUNDED="true"
+HISTORY_LEN=5
 MODELS_DIR=$BASE_DIR/matias_hfo/models/${GAME_SET_UP}
 AUX_NAME="${NUM_OFFENSES}agents_history${HISTORY_LEN}_$(date +"%Y-%m-%dT%T")"
 METRICS_DIR=$MODELS_DIR/metrics/${AGENT_TYPE}/${AUX_NAME}

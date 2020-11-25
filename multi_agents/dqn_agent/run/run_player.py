@@ -22,6 +22,8 @@ if __name__ == '__main__':
     parser.add_argument('--epsilon', type=float, default=1)
     parser.add_argument('--no_save', type=str,
                         choices=("true", "false"), default="false")
+    parser.add_argument('--verbose', type=str,
+                        choices=("true", "false"), default="false")
     args = parser.parse_args()
     
     mode = args.mode
@@ -36,6 +38,7 @@ if __name__ == '__main__':
     model_file = args.model_file
     epsilon = args.epsilon
     no_save = True if args.no_save == "true" else False
+    verbose = True if args.verbose == "true" else False
     print(f"[{mode.upper()}:{step}] ep={num_episodes}; "
           f"num_t={num_team}; num_op={num_op};")
 
@@ -44,7 +47,8 @@ if __name__ == '__main__':
                     num_opponents=num_op, port=port, epsilon=epsilon,
                     model_file=model_file)
     # Explore game:
-    learn_buffer, metrics_dict = player.play(num_episodes=num_episodes)
+    learn_buffer, metrics_dict = player.play(num_episodes=num_episodes,
+                                             verbose=verbose)
 
     # Export train_data:
     if no_save:

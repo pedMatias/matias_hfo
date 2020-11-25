@@ -18,71 +18,79 @@ class PlasticActions(Actions):
         super().__init__(num_team, features, game_interface)
 
     def _dribble_action(self, num_rep: int = 1):
-        uniform_num = self.game_interface.hfo.getUnum()
+        uni_number = self.game_interface.hfo.getUnum()
         for step in range(num_rep):
             if not self.game_interface.in_game():
                 return
-            # Over opponent?
-            elif self.features.near_opponent(dist=0.1) and step > 0:
-                return
-            # Near opponent?
-            elif self.features.near_opponent(dist=0.2):
-                return self._step(DRIBBLE)
-            # Lost ball?
-            elif self.game_interface.last_player_to_touch_ball != uniform_num \
-                    and not self.features.has_ball():
-                if step == 0:
-                    return self._do_nothing(num_rep=1)
+            # Has ball?
+            elif self.features.has_ball():
+                # Near opponent?
+                if self.features.near_opponent(dist=0.15):
+                    # Played a bit:
+                    if step > 0:
+                        return
+                    # Haven't done any action:
+                    else:
+                        self._step(DRIBBLE)
+                # Far from op:
                 else:
-                    return
-            # Everything ok:
+                    self._step(DRIBBLE)
+            # Kicked Ball?
+            elif self.features.near_coords(self.features.ball_coord,
+                                           self.features.agent_coord, ref=0.25):
+                # The agent was the last to touch the ball:
+                if self.game_interface.last_player_to_touch_ball == uni_number:
+                    self._step(DRIBBLE)
+                else:
+                    return self._step(MOVE)
+            # Far from ball:
             else:
-                self._step(DRIBBLE)
-        return
+                return self._step(MOVE)
+        # End dribble reps:
+        if self.features.has_ball():
+            return
+        else:
+            while not self.features.has_ball():
+                if not self.game_interface.in_game():
+                    return
+                # Near Ball:
+                elif self.features.near_coords(self.features.ball_coord,
+                                               self.features.agent_coord,
+                                               ref=0.25):
+                    # The agent was the last to touch the ball:
+                    if self.game_interface.last_player_to_touch_ball == uni_number:
+                        self._step(DRIBBLE)
+                    else:
+                        return self._step(MOVE)
+                # Far from ball:
+                else:
+                    return self._step(MOVE)
+            return
+            
 
     def _move_to_goal(self, num_rep: int = 1):
         """ Move towards the opposing goal
         TODO define different points near goal and calculate the best position
         """
-        # def get_best_goal_pos():
-        #     goal_coord = np.array([[.25, 0], [.4, -.4], [.4, .4]])
-        #     great_pos = []
-        #     good_pos = []
-        #     for coord in goal_coord:
-        #         if not self.features.opponent_near_position(coord):
-        #             good_pos.append(coord)
-        #             # Great coord?
-        #             t_pos = self.features.get_pos_teammate_with_ball()
-        #             if t_pos is None:
-        #                 pass
-        #             elif not self.features.near_coords(coord, t_pos):
-        #                 great_pos.append(coord)
-        #     if len(great_pos) > 0:
-        #         aux_dis = []
-        #         for pos in great_pos:
-        #             aux_dis.append(abs(np.linalg.norm(pos - self.features.agent_coord)))
-        #         return great_pos[aux_dis.index(min(aux_dis))]
-        #     elif len(good_pos) > 0:
-        #         aux_dis = []
-        #         for pos in good_pos:
-        #             aux_dis.append(
-        #                 abs(np.linalg.norm(pos - self.features.agent_coord)))
-        #         return good_pos[aux_dis.index(min(aux_dis))]
-        #     else:
-        #         aux_dis = []
-        #         for pos in goal_coord:
-        #             aux_dis.append(
-        #                 abs(np.linalg.norm(pos - self.features.agent_coord)))
-        #         return goal_coord[aux_dis.index(min(aux_dis))]
-        
+        # Goal area (x_range, y_range)
+        goal_area = [[0.2, 1], [-0.7, 0.7]]
         for _ in range(num_rep):
-            action = MOVE
+            action = (MOVE_TO, 0.4, 0)
+            backup_action = MOVE
             # Game over?
             if not self.game_interface.in_game():
                 return
+            # Has ball?
+            elif self.features.has_ball():
+                return self._step(DRIBBLE)
             # Teammate passed the ball, shoot or lost the ball?
             elif self.features.teammates_lost_ball:
-                return self._step(action)
+                return self._step(backup_action)
+            # Inside Goal area:
+            elif 0.2 <= self.features.agent_coord[0] <= 1 and \
+                    -0.6 <= self.features.agent_coord[0] <= 0.6:
+                self._step(backup_action)
+            # Goal to goal area:
             else:
                 self._step(action)
         return
@@ -98,21 +106,27 @@ class PlasticActions(Actions):
             if not self.game_interface.in_game():
                 return
             # Agent has ball?
-            if self.features.has_ball():
-                return self._dribble_action(num_rep=1)
-            # Team has ball:
-            elif self.features.teammates_have_ball():
-                return self._step(backup_action)
+            elif self.features.has_ball():
+                return self._step(DRIBBLE)
             # No one has ball:
-            else:
+            elif not self.features.teammates_have_ball():
                 self._step(INTERCEPT)
+            # Team has ball:
+            else:
+                # Near teammate?
+                if self.features.near_coords(self.features.ball_coord,
+                                             self.features.agent_coord,
+                                             ref=0.2):
+                    return self._step(MOVE)
+                else:
+                    self._step(INTERCEPT)
         return
 
     def _best_shoot_ball(self):
         """ Tries to shoot, if it fail, kicks to goal randomly """
         self._shoot()
         # If fail to shoot:
-        if self.features.has_ball():
+        if self.game_interface.in_game() and self.features.has_ball():
             self._kick_to_best_angle()
         return
 
@@ -125,6 +139,9 @@ class PlasticActions(Actions):
             # Game over?
             if not self.game_interface.in_game():
                 return
+            # Has ball?
+            elif self.features.has_ball():
+                return self._step(DRIBBLE)
             # Teammate passed the ball, shoot or lost the ball?
             elif self.features.teammates_lost_ball:
                 return self._step(backup_action)
@@ -138,8 +155,7 @@ class PlasticActions(Actions):
             # Near teammate, but far from opponent:
             else:
                 return self._do_nothing(1)
-        else:
-            return
+        return
 
     def _move_away_from_nearest_teammate(self, num_rep: int = 1):
         def get_x_y(vector):
@@ -153,29 +169,32 @@ class PlasticActions(Actions):
             return x_pos, y_pos
         
         t_idx, t_coord = self.features.get_nearest_teammate_coord()
-        opp_vector = get_opposite_vector(self.features.agent_coord, t_coord)
+        # opp_vector = get_opposite_vector(self.features.agent_coord, t_coord)
 
         for step in range(num_rep):
-            x, y = get_x_y(opp_vector)
-            action = (MOVE_TO, x, y)
+            # x, y = get_x_y(opp_vector)
+            # action = (MOVE_TO, x, y)
             backup_action = MOVE
             # Game over?
             if not self.game_interface.in_game():
                 return
+            # Has ball?
+            elif self.features.has_ball():
+                return self._step(DRIBBLE)
             # Teammate passed the ball, shoot or lost the ball?
             elif self.features.teammates_lost_ball:
                 return self._step(backup_action)
-            elif abs(np.linalg.norm(self.features.agent_coord-t_coord)) > 0.6:
+            elif abs(np.linalg.norm(self.features.agent_coord-t_coord)) > 0.4:
                 return self._step(backup_action)
             else:
-                self._step(action)
+                self._step(backup_action)
         return
 
     def _move_to_nearest_opponent(self, num_rep: int = 1):
         op_idx, _ = self.features.get_nearest_opponent_coord()
         for step in range(num_rep):
             op_coord = self.features.opps_coord[op_idx]
-            action = (MOVE_TO, op_coord[0], op_coord[1])
+            # action = (MOVE_TO, op_coord[0], op_coord[1])
             backup_action = MOVE
             # Game over?
             if not self.game_interface.in_game():
@@ -183,13 +202,16 @@ class PlasticActions(Actions):
             # Teammate passed the ball, shoot or lost the ball?
             elif self.features.teammates_lost_ball:
                 return self._step(backup_action)
+            # Has ball?
+            elif self.features.has_ball():
+                return self._step(DRIBBLE)
             # Still far from opponent:
             elif not self.features.near_coords(self.features.agent_coord,
                                                op_coord):
-                self._step(action)
+                self._step(backup_action)
             # Near opponent:
             else:
-                return self._do_nothing(1)
+                return self._step(backup_action)
         else:
             return
 
@@ -205,42 +227,47 @@ class PlasticActions(Actions):
             return x_pos, y_pos
     
         for step in range(num_rep):
-            op_idx, near_op_coord = self.features.get_nearest_opponent_coord()
-            opp_vector = get_opposite_vector(self.features.agent_coord,
-                                             near_op_coord)
-            x, y = get_x_y(opp_vector)
-            action = (MOVE_TO, x, y)
+            # op_idx, near_op_coord = self.features.get_nearest_opponent_coord()
+            # opp_vector = get_opposite_vector(self.features.agent_coord,
+            #                                  near_op_coord)
+            # x, y = get_x_y(opp_vector)
+            # action = (MOVE_TO, x, y)
             backup_action = MOVE
             # Game over?
             if not self.game_interface.in_game():
                 return
+            # Has ball?
+            elif self.features.has_ball():
+                return self._step(DRIBBLE)
             # Teammate passed the ball, shoot or lost the ball?
             elif self.features.teammates_lost_ball:
                 return self._step(backup_action)
+            # Near opponent:
             elif self.features.near_opponent(dist=0.3):
-                return self._step(backup_action)
+                self._step(backup_action)
             else:
-                self._step(action)
+                self._step(backup_action)
         return
 
-    def _pass_ball(self, teammate_id: int):
+    def _pass_ball(self, teammate_id: int, verbose: bool=False):
         """ Tries to use the PASS action, if it fails, Kicks in the direction
         of the teammate"""
         uniform = self.features.teammates_uniform_numbers[teammate_id]
-    
         for step in range(2):
             # Game over?
             if not self.game_interface.in_game():
                 return
             # Lost has ball:
             elif not self.features.has_ball():
-                return
+                return self._step(MOVE)
             else:
-                hfo_action = (PASS, uniform)
+                hfo_action = (PASS, int(uniform))
                 # Step game:
                 self._step(action=hfo_action)
         # Failed the action PASS 2 times:
         else:
+            if verbose:
+                print(f"[PASS:{teammate_id}] Failed PASS to {uniform}; Will Kick")
             t_coord = self.features.ts_coord[teammate_id]
             hfo_action = (KICK_TO, t_coord[0], t_coord[1], 1.7)
             # Step game:
@@ -257,6 +284,8 @@ class PlasticActions(Actions):
                              f"Legal actions: {self.get_legal_actions()}")
 
         action_name = self.get_action_name(action_idx)
+        if verbose:
+            print(f"<ACTION> :: {action_name}")
         # Actions with ball:
         if action_name == "SHOOT":
             self._best_shoot_ball()

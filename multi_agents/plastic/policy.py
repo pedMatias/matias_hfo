@@ -20,21 +20,21 @@ class Policy:
         print("[Policy] Creating")
         if not os.path.isdir(team_dir):
             raise ModuleNotFoundError(team_dir)
+    
+        # Team Model:
+        team_model_file = os.path.join(team_dir, config.TEAM_MODEL_FORMAT)
+        if not os.path.isfile(team_model_file):
+            print(f"[Policy] Creating Team Model: {team_model_file}")
+            team_model = TeamModel.set_up_and_save(directory=team_dir)
+        else:
+            print(f"[Policy] Team Model already created: {team_model_file}")
+            team_model = TeamModel.load_model(team_model_file)
         
         # DQN Model:
         dqn_model_file = os.path.join(team_dir, config.DQN_MODEL_FORMAT)
         if not os.path.isfile(dqn_model_file):
             raise FileNotFoundError(f"[Policy] DQN Not found:{dqn_model_file}")
         dqn_model = DQN.load(dqn_model_file)
-        
-        # Team Model:
-        team_model_file = os.path.join(team_dir, config.TEAM_MODEL_FORMAT)
-        if not os.path.isfile(team_model_file):
-            print(f"[Policy] Creating Team Model: {team_model_file}")
-            team_model = TeamModel.create_and_save(directory=team_dir)
-        else:
-            print(f"[Policy] Team Model already created: {team_model_file}")
-            team_model = TeamModel.load_model(team_model_file)
         return cls(team_name, dqn_model, team_model)
     
     @classmethod
@@ -50,7 +50,7 @@ class Policy:
         dqn_model = DQN.load(dqn_model_file)
         # Team model:
         team_model_file = os.path.join(team_dir, config.TEAM_MODEL_FORMAT)
-        team_model = TeamModel.load_model(team_model_file)
+        team_model = TeamModel.load_model_from_data(team_model_file)
         return cls(team_name, dqn_model, team_model)
     
     @property
@@ -75,4 +75,4 @@ class Policy:
         interacting with.
         The nearest to zero, the similar it is.
         """
-        return self.team_model.similarity(transition)
+        return self.team_model.transition_similarity(transition)
