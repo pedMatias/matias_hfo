@@ -23,20 +23,23 @@ class DQN:
         self.model = model
 
     @classmethod
-    def create(cls, num_features: int, num_actions: int,
+    def create(cls, num_features: int, num_actions: int, num_teammates: int,
                learning_rate: float = 0.01):
         print("[DQN] Creating")
         model = Sequential()
+        # Game mode:
+        layers = config.FULL_DQN_LAYERS if num_teammates > 1 \
+            else config.LIMITED_DQN_LAYERS
         # Input Layer:
-        out_dim, act_funct = config.DQN_LAYERS["input"]
+        out_dim, act_funct = layers["input"]
         model.add(Dense(out_dim, input_dim=num_features, activation=act_funct))
         
         # Hidden Layers:
-        for out_dim, act_funct in config.DQN_LAYERS["hidden"]:
+        for out_dim, act_funct in layers["hidden"]:
             model.add(Dense(out_dim, activation=act_funct))
             
         # Output Layer:
-        _, act_funct = config.DQN_LAYERS["output"]
+        _, act_funct = layers["output"]
         model.add(Dense(num_actions, activation=act_funct))
         
         # Compile Model:

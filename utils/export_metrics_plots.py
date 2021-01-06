@@ -67,21 +67,23 @@ if __name__ == '__main__':
     # fields:
     trained_eps = metrics["trained_eps"]
     epsilons = metrics["epsilons"]
-    q_table_variation = (np.array(metrics["q_table_variation"]) * 100).tolist()
     avr_win_rate = (np.array(metrics["avr_win_rate"]) * 100).tolist()
-    learning_rate = metrics["learning_rate"]
+    # learning_rate = metrics["learning_rate"]
+    # q_table_variation = (np.array(metrics["q_table_variation"]) *
+    # 100).tolist()
     
     num_iterations = len(trained_eps)
     
     # Create image Avr wining rate VS Learning Rate:
-    chart_name = "avr_win_rate_VS_learning_rate.png"
-    chart = TwoLineChart(x_legend="episodes",
-                         title="Wining rate - Learning Rate")
-    chart.add_first_line_chart(x=trained_eps, y=avr_win_rate,
-                               name="wining rate", y_legend="wining rate (%)")
-    chart.add_second_line_chart(x=trained_eps, y=learning_rate,
-                                name="learning rate", y_legend="learning rate")
-    chart.export_as_png(os.path.join(dir, chart_name))
+    # chart_name = "avr_win_rate_VS_learning_rate.png"
+    # chart = TwoLineChart(x_legend="episodes",
+    #                      title="Wining rate - Learning Rate")
+    # chart.add_first_line_chart(x=trained_eps, y=avr_win_rate,
+    #                            name="wining rate", y_legend="wining rate (%)")
+    # chart.add_second_line_chart(x=trained_eps, y=learning_rate,
+    #                             name="learning rate", y_legend="learning
+    #                             rate")
+    # chart.export_as_png(os.path.join(dir, chart_name))
     
     # Create image Avr wining rate VS Epsilon:
     chart_name = "avr_win_rate_VS_epsilon.png"
@@ -94,13 +96,13 @@ if __name__ == '__main__':
     chart.export_as_png(os.path.join(dir, chart_name))
 
     # Create image Avr wining rate VS Q-Table variation:
-    chart_name = "avr_win_rate_VS_q_table_variation.png"
-    chart = TwoLineChart(x_legend="episodes",
-                         title="Wining rate (%) - Q-Table Variation (%)")
-    chart.add_first_line_chart(x=trained_eps, y=avr_win_rate,
-                               name="wining rate", y_legend="wining rate (%)")
-    chart.add_second_line_chart(x=trained_eps, y=q_table_variation,
-                                name="q-table variation",
-                                y_legend="q-table variation (%)")
-    chart.export_as_png(os.path.join(dir, chart_name))
+    # chart_name = "avr_win_rate_VS_q_table_variation.png"
+    # chart = TwoLineChart(x_legend="episodes",
+    #                      title="Wining rate (%) - Q-Table Variation (%)")
+    # chart.add_first_line_chart(x=trained_eps, y=avr_win_rate,
+    #                            name="wining rate", y_legend="wining rate (%)")
+    # chart.add_second_line_chart(x=trained_eps, y=q_table_variation,
+    #                             name="q-table variation",
+    #                             y_legend="q-table variation (%)")
+    # chart.export_as_png(os.path.join(dir, chart_name))
 

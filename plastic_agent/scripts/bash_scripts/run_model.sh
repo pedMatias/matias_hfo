@@ -6,7 +6,7 @@ PORT=6000
 BASE_DIR=/home/matias/Desktop/HFO
 HFO=$BASE_DIR/bin/HFO
 PYTHON=$BASE_DIR/venv/bin/python
-MODELS_DIR=$BASE_DIR/matias_hfo/models
+MODELS_DIR=$BASE_DIR/matias_hfo/models/2vs2
 AGENTS_DIR=$BASE_DIR/matias_hfo/plastic_agent
 
 echo "HFO: ${HFO}"
@@ -16,13 +16,13 @@ export PYTHONPATH=$BASE_DIR:$PYTHONPATH
 export PYTHONPATH=$BASE_DIR/matias_hfo:$PYTHONPATH
 
 NUM_DEFENSES=0
-NUM_DEFENSES_NPCS=2
+NUM_DEFENSES_NPCS=5
 TOTAL_DEFENSES=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
 TOTAL_OPPONENTS=$TOTAL_DEFENSES
 echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
 
-NUM_OFFENSES=1
-NUM_OFFENSES_NPCS=1
+NUM_OFFENSES=0
+NUM_OFFENSES_NPCS=4
 TOTAL_OFFENSES=$(($NUM_OFFENSES + $NUM_OFFENSES_NPCS))
 TOTAL_TEAMMATES=$(($TOTAL_OFFENSES - 1))
 echo "TOTAL_TEAMMATES: $TOTAL_TEAMMATES"
@@ -35,8 +35,8 @@ NUM_TEST_EPISODES=10
 BASE_MODEL=$MODELS_DIR/base/agent_model
 
 MODE="testing"
-TEAMMATE_NAME="yushan"
-MODEL_FILE="${MODELS_DIR}/${TEAMMATE_NAME}/0.model.2"
+TEAMMATE_NAME="aut"
+MODEL_FILE="${MODELS_DIR}/${TEAMMATE_NAME}/4.model"
 # MODEL_FILE=${BASE_MODEL}
 PLAYER_FILE=$AGENTS_DIR/run_player.py
 
@@ -52,13 +52,13 @@ $HFO --offense-team $TEAMMATE_NAME --offense-agents $NUM_OFFENSES \
 #&
 # --headless &
 
-sleep 2
-echo "Model: ${MODEL_FILE}"
-$PYTHON $PLAYER_FILE --mode=$MODE --num_opponents=$TOTAL_OPPONENTS \
---num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_TEST_EPISODES \
---step=$STEP --dir=$DIR_NAME --port=$PORT \
---no_save=$NO_SAVE --team_name=$TEAMMATE_NAME --model_file=$MODEL_FILE \
---epsilon=0 &
+# sleep 2
+# echo "Model: ${MODEL_FILE}"
+# $PYTHON $PLAYER_FILE --mode=$MODE --num_opponents=$TOTAL_OPPONENTS \
+# --num_teammates=$TOTAL_TEAMMATES --num_episodes=$NUM_TEST_EPISODES \
+# --step=$STEP --dir=$DIR_NAME --port=$PORT \
+# --no_save=$NO_SAVE --team_name=$TEAMMATE_NAME --model_file=$MODEL_FILE \
+# --epsilon=0 &
 
 trap "kill -TERM -$$" SIGINT
 wait

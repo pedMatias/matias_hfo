@@ -1,5 +1,5 @@
 from models.TeamModel import TeamModel
-from agents.plastic.policy.PLASTICPolicy import PLASTICPolicy
+from agents.persuit_plastic.policy.PLASTICPolicy import PLASTICPolicy
 
 
 class LearntPLASTICPolicy(PLASTICPolicy):

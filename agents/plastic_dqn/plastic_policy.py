@@ -1,6 +1,6 @@
 from agents.plastic_dqn import config
 from models.TeamModel import TeamModel
-from agents.plastic.policy.PLASTICPolicy import PLASTICPolicy
+from agents.persuit_plastic.policy.PLASTICPolicy import PLASTICPolicy
 from yaaf import mkdir
 
 

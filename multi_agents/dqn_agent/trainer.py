@@ -49,6 +49,7 @@ class Trainer:
                                       game_interface=self.game_interface)
         # DQN:
         self.dqn = DQN.create(
+            num_teammates=num_teammates,
             num_features=self.features.get_num_features(),
             num_actions=self.actions.get_num_actions(),
             learning_rate=LEARNING_RATE

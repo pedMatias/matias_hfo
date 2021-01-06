@@ -56,22 +56,7 @@ class BehaviourDist:
             policy_idx = np.argmax(self.probabilities)
         return self.policies[policy_idx]
         
-
-def learn_about_prior_teammate(teammate_name: str) -> (DQN, NearestNeighbors):
-    """
-    Plays with the teammates for N timesteps.
-    At each timestep collects (s, a, r, s');
-    Learns a policy P using DQN
-    Learns a nearest neighbors model M
-    :@return (P, N)
-    """
-    policy = Policy(team_name=teammate_name)
-    data: List[Transition] = play(train=True, model=policy.dqn)
-    # Train Team Model:
-    policy.train_team_model(data)
-    return policy.dqn, policy.team_model
-
-
+        
 def update_beliefs(behaviour_dist: BehaviourDist, transition: Transition,
                    n: int) -> BehaviourDist:
     """

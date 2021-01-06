@@ -1,22 +1,19 @@
-# !/usr/bin/env python3
+# !/usr/bin/hfo_env python3
 # encoding utf-8
 import argparse
 import json
 import os
 import random
-from shutil import copyfile
 
 import numpy as np
 
 import settings
 from agents.utils import ServerDownError, get_vertices_around_ball
-from agents.plastic_dqn_v1.base.hfo_attacking_player import HFOAttackingPlayer
+from agents.plastic_dqn_v1.hfo_env.game_interface import HFOAttackingPlayer
 from agents.plastic_dqn_v1.agent.dqn import DQN
-from agents.plastic_dqn_v1.actions.complex import Actions
-from agents.plastic_dqn_v1.features.plastic_features import PlasticFeatures
-from agents.plastic_dqn_v1.plastic import Policy
+from agents.plastic_dqn_v1.hfo_env.actions.complex import Actions
+from agents.plastic_dqn_v1.hfo_env.features.plastic_features import PlasticFeatures
 from agents.plastic_dqn_v1 import config
-
 
 
 """

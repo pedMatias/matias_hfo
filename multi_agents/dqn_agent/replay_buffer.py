@@ -99,7 +99,7 @@ class ExperienceBuffer:
     @classmethod
     def create_by_merge_files(cls, directory: str):
         print("[Experience Buffer] Merging smaller files")
-        step = 1
+        step = 0
         exp_episodes = list()
         while True:
             # Check if file exists:

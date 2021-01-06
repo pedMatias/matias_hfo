@@ -1,7 +1,7 @@
 from typing import Optional
 
 from hfo import SHOOT, PASS, DRIBBLE, MOVE, GO_TO_BALL, REORIENT, NOOP, QUIT,\
-    DRIBBLE_TO, MOVE_TO, KICK_TO
+    DRIBBLE_TO, MOVE_TO, KICK_TO, KICK
 
 
 class ActionManager:
@@ -12,10 +12,10 @@ class ActionManager:
 
     @staticmethod
     def valid_action(hfo_action: int, has_ball: bool, params: tuple) -> tuple:
-        if hfo_action in [KICK_TO, SHOOT, DRIBBLE_TO, PASS, DRIBBLE] and \
+        if hfo_action in [KICK, KICK_TO, SHOOT, DRIBBLE_TO, PASS, DRIBBLE] and \
                 has_ball:
             return (hfo_action, *params)
-        elif hfo_action in [MOVE, MOVE_TO, GO_TO_BALL, DRIBBLE_TO] \
+        elif hfo_action in [MOVE, MOVE_TO, GO_TO_BALL, DRIBBLE_TO, DRIBBLE] \
                 and not has_ball:
             return (hfo_action, *params)
         elif hfo_action in [REORIENT, NOOP, QUIT]:

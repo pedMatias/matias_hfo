@@ -1,4 +1,4 @@
-from agents.plastic.PLASTICPrior import PLASTICPrior
+from agents.persuit_plastic.PLASTICPrior import PLASTICPrior
 from agents.teammates.GreedyAgent import GreedyAgent
 from agents.teammates.TeammateAwareAgent import TeammateAwareAgent
 
