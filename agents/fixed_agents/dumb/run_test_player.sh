@@ -16,8 +16,8 @@ PORT=6010
 
 NUM_GAMES=1
 
-NUM_DEFENSES=1
-NUM_DEFENSES_NPCS=0
+NUM_DEFENSES=0
+NUM_DEFENSES_NPCS=2
 TOTAL_OPPONENTS=$(($NUM_DEFENSES + $NUM_DEFENSES_NPCS))
 echo "TOTAL_OPPONENTS: $TOTAL_OPPONENTS"
 
@@ -37,15 +37,15 @@ $HFO --offense-agents $NUM_OFFENSES --offense-npcs $NUM_OFFENSES_NPCS \
 
 # OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/dumb_agent.py
 # OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/dumb/test_agent.py
-OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_agents/dumb/test_ball_direccion.py
+OFFENSE_AGENT_FILE=$BASE_DIR/matias_hfo/agents/fixed_agents/dumb/dumb_agent.py
 
 sleep 2
 echo "Connect Offense Player"
-$PYTHON $OFFENSE_AGENT_FILE --port=$PORT --num_games=$NUM_GAMES &
+$PYTHON $OFFENSE_AGENT_FILE --port=$PORT &
 
-sleep 2
-echo "Connect Defense Player"
-$PYTHON $DEFENSE_AGENT_FILE --port=$PORT --num_episodes=1 &
+# sleep 2
+# echo "Connect Defense Player"
+# $PYTHON $DEFENSE_AGENT_FILE --port=$PORT --num_episodes=1 &
 # .py &
 # The magic line
 #   $$ holds the PID for this script

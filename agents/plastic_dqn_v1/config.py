@@ -36,3 +36,13 @@ DQN_DISCOUNT_FACTOR = 0.95
 ###########
 
 ETA = 0.25   # Maximum loss for PLASTIC Belief Updates. Original values
+
+BASE_MODEL_DQN = "/home/matias/Desktop/HFO/matias_hfo/models/base/agent_model"
+EXPERIENCE_BUFFER_FORMAT = "learn_buffer.{step}"
+MODEL_FILE_FORMAT = "{team_name}_{step}.model"
+
+# PLASTIC_FORMATS:
+PLASTIC_MODEL_FORMAT = "{base_dir}/{team_name}/persuit_plastic.pickle"
+DQN_MODEL_FORMAT = "{base_dir}/{team_name}/dqn_model.model"
+TEAM_MODEL_FORMAT = "{base_dir}/{team_name}/team_model.model"
+REPLAY_BUFFER_FORMAT = "{base_dir}/{team_name}/experience_buffer.pkl"

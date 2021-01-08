@@ -4,7 +4,7 @@ import yaml
 
 from models.DQN import DQN
 from models.ReplayMemoryModel import ReplayMemoryModel
-from agents.plastic.PLASTICPrior import PLASTICPrior
+from agents.persuit_plastic.PLASTICPrior import PLASTICPrior
 
 
 class PLASTICPolicy(PLASTICPrior, ABC):

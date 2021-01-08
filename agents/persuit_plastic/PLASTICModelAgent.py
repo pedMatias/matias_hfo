@@ -1,11 +1,11 @@
 import numpy as np
 import yaml
 
-from agents.plastic.model.LearningPLASTICModel import LearningPLASTICModel
-from agents.plastic.model.LearntPLASTICModel import LearntPLASTICModel
+from agents.persuit_plastic.model.LearningPLASTICModel import LearningPLASTICModel
+from agents.persuit_plastic.model.LearntPLASTICModel import LearntPLASTICModel
 from environment.Pursuit import Pursuit
-from agents.plastic.PLASTICAgent import PLASTICAgent
-from agents.plastic.model.HandcodedPLASTICModel import HandcodedPLASTICModel
+from agents.persuit_plastic.PLASTICAgent import PLASTICAgent
+from agents.persuit_plastic.model.HandcodedPLASTICModel import HandcodedPLASTICModel
 from search.PursuitMCTSNode import PursuitMCTSNode
 
 

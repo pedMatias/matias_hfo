@@ -48,7 +48,7 @@ class LearnBuffer:
         if isinstance(data, LearnBuffer):
             return data
         elif isinstance(data, list):
-            return cls(data)
+            return cls(team_experience_buffer=data)
         else:
             raise ValueError(f"Unexpected type of {file_name}")
         
@@ -103,7 +103,7 @@ class ExperienceBuffer:
         exp_episodes = list()
         while True:
             # Check if file exists:
-            experience_file = config.EXPERIENCE_BUFFER_FORMAT.format(step=step)
+            experience_file = config.TEAM_EXPERIENCE_BUFFER_FORMAT.format(step=step)
             data_file = os.path.join(directory, experience_file)
             if not os.path.isfile(data_file):
                 print(f"CANT find {data_file}")

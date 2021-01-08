@@ -49,6 +49,7 @@ class Trainer:
                                       game_interface=self.game_interface)
         # DQN:
         self.dqn = DQN.create(
+            num_teammates=num_teammates,
             num_features=self.features.get_num_features(),
             num_actions=self.actions.get_num_actions(),
             learning_rate=LEARNING_RATE
@@ -124,10 +125,10 @@ class Trainer:
             ValueError(f"Can not find file {data_file}")
     
     def load_experience_from_dir(self, clean_learn_buffer: bool,
-                                 verbose=False):
+                                 verbose=False, starting_step: int = 0):
         if clean_learn_buffer:
             self._restart_replay_buffer()
-        for prev_step in range(0, self.step + 1):
+        for prev_step in range(starting_step, self.step + 1):
             data_file = config.DQN_EXPERIENCE_BUFFER_FORMAT.format(step=prev_step)
             data_file = os.path.join(self.directory, data_file)
             self._load_learn_buffer(data_file)
@@ -136,18 +137,27 @@ class Trainer:
                   f"DATA LEN={len(self.replay_buffer)};\n")
     
     def train_model(self, verbose: bool = False):
+        def divide_batchs(l, n):
+            # looping till length l
+            batchs = list()
+            for i in range(0, len(l), n):
+                batchs.append(l[i:i + n])
+            return batchs
+                
         print(f"[train_model: {self.step}] Started")
         start_time = time.time()
         
-        num_rep = len(self.replay_buffer) // BATCH_SIZE
+        random.shuffle(self.replay_buffer)
+        batchs = divide_batchs(self.replay_buffer, BATCH_SIZE)
+        num_rep = len(batchs)
         model_base = config.MODEL_FILE_FORMAT.format(step=self.step)
-        for i in range(num_rep):
+        for i, train_data in enumerate(batchs):
             print(f"::: {i}/{num_rep}")
             ## Early save model:
             #if i == (num_rep // 2):
             #    self._save_model(model_base=model_base, iter=i)
             # Train:
-            train_data = random.sample(self.replay_buffer, BATCH_SIZE)
+            # train_data = random.sample(self.replay_buffer, BATCH_SIZE)
             loss = self._fit_batch(train_data, verbose=0, epochs=EPOCHS)
             self.losses.append(sum(loss) / len(loss))
         

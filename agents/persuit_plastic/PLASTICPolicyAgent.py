@@ -1,8 +1,8 @@
 import yaml
 
-from agents.plastic.PLASTICAgent import PLASTICAgent
-from agents.plastic.policy.LearningPLASTICPolicy import LearningPLASTICPolicy
-from agents.plastic.policy.LearntPLASTICPolicy import LearntPLASTICPolicy
+from agents.persuit_plastic.PLASTICAgent import PLASTICAgent
+from agents.persuit_plastic.policy.LearningPLASTICPolicy import LearningPLASTICPolicy
+from agents.persuit_plastic.policy.LearntPLASTICPolicy import LearntPLASTICPolicy
 from yaaf.policies import action_from_policy, lazy_epsilon_greedy_policy, linear_annealing
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/hfo_env python
 """
 This is a hand-coded defense agent, using hand_coded_defense_agent.cpp as a starting point,
 that should be able to play, for instance, a 2v2 game againt 2 offense npcs. It requires a goal

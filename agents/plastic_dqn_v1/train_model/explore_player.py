@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/hfo_env python3
 # encoding utf-8
 import argparse
 import json
@@ -6,7 +6,7 @@ import os
 import pickle
 
 
-from agents.plastic_dqn_v1.base.player import Player
+from agents.plastic_dqn_v1.hfo_env.player import Player
 from agents.plastic_dqn_v1 import config
 
 
@@ -15,14 +15,13 @@ This module is used to gather data using previous trained deep q neural nets,
 with specific epsilons
 """
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_teammates', type=int, default=0)
     parser.add_argument('--num_opponents', type=int, default=0)
     parser.add_argument('--num_episodes', type=int, default=1)
     parser.add_argument('--team_name', type=str, default=None)
-    parser.add_argument('--starts_fixed_position', type=str, default="true")
+    parser.add_argument('--starts_fixed_position', type=str, default="false")
     parser.add_argument('--step', type=int, default=0)
     parser.add_argument('--epsilon', type=float, default=1)
     parser.add_argument('--dir', type=str)

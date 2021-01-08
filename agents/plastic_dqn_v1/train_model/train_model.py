@@ -1,29 +1,21 @@
-#!/usr/bin/env python3
+#!/usr/bin/hfo_env python3
 # encoding utf-8
 import argparse
-import json
 import os
 import pickle
-import random
-from copy import copy
 from typing import List
 from collections import deque
 
 import numpy as np
-from hfo import GOAL, IN_GAME, CAPTURED_BY_DEFENSE, OUT_OF_TIME, OUT_OF_BOUNDS
 
-import settings
-from agents.utils import ServerDownError, get_vertices_around_ball
-from agents.plastic_dqn_v1.base.hfo_attacking_player import \
+from agents.plastic_dqn_v1.hfo_env.game_interface import \
     HFOAttackingPlayer
 from agents.plastic_dqn_v1.agent.dqn import DQN
 from agents.plastic_dqn_v1.agent.replay_buffer import LearnBuffer, Transition
-from agents.plastic_dqn_v1.actions.complex import Actions
-from agents.plastic_dqn_v1.features.plastic_features import \
+from agents.plastic_dqn_v1.hfo_env.actions.complex import Actions
+from agents.plastic_dqn_v1.hfo_env.features.plastic_features import \
     PlasticFeatures
 from agents.plastic_dqn_v1 import config
-from agents.plastic_dqn_v1.aux import print_transiction, mkdir
-
 
 """
 This module is used to train the model using exploration data

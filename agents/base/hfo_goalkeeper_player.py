@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/hfo_env python3
 # encoding utf-8
 
 from hfo import HFOEnvironment, HIGH_LEVEL_FEATURE_SET, QUIT, IN_GAME

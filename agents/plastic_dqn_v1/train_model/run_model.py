@@ -1,8 +1,8 @@
-# !/usr/bin/env python3
+# !/usr/bin/hfo_env python3
 # encoding utf-8
 import argparse
 
-from agents.plastic_dqn_v1.base.player import Player
+from agents.plastic_dqn_v1.hfo_env.player import Player
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

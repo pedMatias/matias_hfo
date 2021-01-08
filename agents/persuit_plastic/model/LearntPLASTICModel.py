@@ -1,5 +1,5 @@
 from models.TeamModel import TeamModel
-from agents.plastic.PLASTICPrior import PLASTICPrior
+from agents.persuit_plastic.PLASTICPrior import PLASTICPrior
 
 
 class LearntPLASTICModel(PLASTICPrior):

@@ -83,6 +83,7 @@ class Player:
         num_wrong_actions = 0
         num_correct_actions = 0
         while self.game_interface.in_game():
+            print("BALL?? ", self.game_interface.hfo.playerOnBall().unum)
             if self.features.has_ball():
                 touched_ball = True
             # Update environment features:

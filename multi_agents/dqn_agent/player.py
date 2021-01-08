@@ -41,7 +41,7 @@ class Player:
     
     def exploit_actions(self, state: np.ndarray, verbose: bool = False) -> int:
         q_predict = self.dqn.predict(state)[0]
-        
+    
         # Set illegal actions to zero:
         legal_actions = self.actions.get_legal_actions()
         for i in range(len(q_predict)):
@@ -82,13 +82,15 @@ class Player:
             reward = -1
         return reward
     
-    def play_episode(self, game_metrics: GameMetrics):
+    def play_episode(self, game_metrics: GameMetrics, verbose: bool=False):
         # auxiliar structures:
         episode_buffer = list()
         # metrics:
         touched_ball = False
         passed_ball = False
         scored_goal = False
+        # auxiliar:
+        last_act = None
         while self.game_interface.in_game():
             if self.features.has_ball():
                 touched_ball = True
@@ -96,7 +98,17 @@ class Player:
             features_array = self.features.get_features()
             # Act:
             act = self.act(features_array, metrics=game_metrics, verbose=False)
-            self.actions.execute_action(act, verbose=False)
+            if verbose:
+                if act == last_act:
+                    log_action = False
+                else:
+                    print(f"{self.features.team_ball_possession}; "
+                          f"{self.features.has_ball()}")
+                    log_action = True
+                self.actions.execute_action(act, verbose=log_action)
+                last_act = act
+            else:
+                self.actions.execute_action(act, verbose=False)
 
             # Store transition:
             # (obs, action, reward, new obs, done?)
@@ -124,7 +136,7 @@ class Player:
             scored_goal=scored_goal)
         return episode_buffer, metrics
     
-    def play(self, num_episodes: int):
+    def play(self, num_episodes: int, verbose: bool=False):
         """
         @param num_episodes: number of episodes to train in this iteration
         @raise ServerDownError
@@ -147,7 +159,7 @@ class Player:
                 last_player_touch_ball_uniform_num=0
             )
             # Play episode:
-            ep_buffer, ep_metrics = self.play_episode(game_metrics)
+            ep_buffer, ep_metrics = self.play_episode(game_metrics, verbose)
             # Save episode:
             experience_buffer.save_episode(ep_buffer)
             
